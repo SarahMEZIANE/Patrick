@@ -24,4 +24,4 @@ Installation
 Pour installer l'application, téléchargez le fichier ZIP depuis le dépôt GitHub et décompressez-le dans un dossier de votre choix.
 
 Contact
-Si vous avez des questions ou des commentaires sur mon projet Patrick's Parabox, vous pouvez me contacter à l'adresse email suivante : belkadilamia38@gmail.com.
+Si vous avez des questions ou des commentaires sur mon projet Patrick's Parabox, vous pouvez nous contacter par mail
