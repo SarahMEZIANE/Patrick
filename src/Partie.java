@@ -47,8 +47,11 @@ public class Partie {
 	public static List<Niveau> readPuzzles(String fileName) {
 		HashMap<Character,Position> positionWorlds = new HashMap<Character,Position>();
         List<Niveau> puzzles = new ArrayList<>();
+       // ArrayList<Position> Boxes =new ArrayList<>();
+       // ArrayList<Position> Cibles =new ArrayList<>();
         try (BufferedReader reader = new BufferedReader(new FileReader(fileName))) {
             String line;
+            Position pm=null;
             while ((line = reader.readLine()) != null) {
                 if (line.startsWith("P")) {//si la ligne commence par un P , donc une sous partie
                     String[] puzzleHeader = line.split(" ");
@@ -60,15 +63,26 @@ public class Partie {
                     for (int i = 0; i < size; i++) {
                     	line = reader.readLine();
                         for (int j = 0; j < size; j++) {
-                            data[i][j] = line.charAt(j); 
+                            data[i][j] = line.charAt(j);
+                           /* if(line.charAt(j)=='B') {
+                            	Boxes.add(new Position(i,j));
+                            }
+                            if(line.charAt(j)=='@') {
+                            	Cibles.add(new Position(i,j));
+                            }*/
                             if(line.charAt(j)!='#' && line.charAt(j)!='a' && line.charAt(j)!='A' && line.charAt(j)!='b' && line.charAt(j)!='B' && line.charAt(j)!=' '&& line.charAt(j)!='@') {
                             	//on doit preserver la position
                             	// sik c'est un monde 
-                            	positionWorlds.put(data[i][j], new Position(i,j));//bien ça marche 
+                            	
+                            	positionWorlds.put(data[i][j], new Position(i,j));
+                            	pm=new Position(i,j);//bien ça marche 
                             }
                         }
                     }//on a jusqu'a cette ligne la premiere partie
-                    puzzles.add(new Niveau(puzzleHeader[0], size, data)); //on construit les parties
+                    Niveau n=new Niveau(puzzleHeader[0], size, data);
+                    n.setpositionMonde(pm);
+                    puzzles.add(n);
+            
                 	char cc = puzzleHeader[0].charAt(1);
                     int num = Character.getNumericValue(cc);
                     puzzles.get(num-1).setBoard(puzzles.get(num-1).const_brd(data, size));//on construit le board
@@ -94,6 +108,7 @@ public class Partie {
                     Position pos=rechPos(letter,positionWorlds);
                     //on doit récuperer la matrice du sous monde
                     puzzles.get(puzzles.size() - 1).getLesMondes().put(pos,monde);
+                    
                     puzzles.get(puzzles.size() - 1).getBoxes().addAll(monde.getListeBoites());
                     puzzles.get(puzzles.size() - 1).getCibles().addAll(monde.getListeCibles());
                 }
