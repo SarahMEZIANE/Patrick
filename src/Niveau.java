@@ -1,5 +1,5 @@
 
-import java.io.File;
+import java.io.File;    
 import java.io.FileInputStream;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -84,15 +84,31 @@ public class Niveau  {
 	}
 
 	Boolean next;
+	private boolean won;
 	String nom_partie;// IL SE MODIFIE A CHAQUE FOIS QU ON AVANCE DANS LE NIVEAU 
-	
-    public Niveau(String nom_partie, int r, char[][] data ) {
-		super();
+	public Niveau(String nom_partie, int r, char[][] data) {
 		this.nom_partie = nom_partie;
 		this.rowNb = r;
 		this.colNb = r;
 		this.level = data;
 		estMonde=false;
+		this.won=false;
+		/*this.boxes=new ArrayList<Position>();
+		this.cibles=new ArrayList<Position>();*/
+	}
+    public Niveau(String nom_partie, int r, char[][] data ,ArrayList<Position> Bo,ArrayList<Position> Ci) {
+		this(nom_partie,r,data);
+		this.nom_partie = nom_partie;
+		this.rowNb = r;
+		this.colNb = r;
+		this.level = data;
+		estMonde=false;
+		for(Position b : Bo) {
+			this.boxes.add(b);
+		}
+		for(Position c : Ci) {
+			this.cibles.add(c);
+		}
 		//this.board=this.const_brd(data,r);
 		
 	}
@@ -119,7 +135,11 @@ public class Niveau  {
     private char[][] level;
     //la liste des boîtes qui ont des cibles à placer sur 
     private ArrayList<Position> cibles=new ArrayList<Position>();//les coordonnes des cibles // ne se modifie pas 
-	private ArrayList<Position> boxes=new ArrayList<Position>();//les coordonnees des boites // se modifie
+	private ArrayList<Position> boxes=new ArrayList<Position>();
+	private ArrayList<Position> ciblesdepart=new ArrayList<Position>();//les coordonnes des cibles // ne se modifie pas 
+	private ArrayList<Position> boxesdepart=new ArrayList<Position>();
+	private Position positionActuelledepart=new Position();
+	//les coordonnees des boites // se modifie
     
     
     public int getRowNb() {
@@ -314,7 +334,12 @@ public class Niveau  {
 		}
 		System.out.println("**************************fin aff*******************************");
 }
-	
+	public Position getpositionMonde() {
+		return this.positionMonde;
+	}
+	public void setpositionMonde(Position p) {
+		this.positionMonde=p;
+	}
 	static Monde rechMonde( Position p,HashMap<Position,Monde> map) {
 		for(Map.Entry<Position, Monde> entry : map.entrySet()) {
 			if(entry.getKey().equals(p)) {
@@ -725,6 +750,426 @@ public class Niveau  {
 			estMonde=true;
 			}
 		}
+		if(iswon()==true) {
+        	System.out.println("BRAVO");
+        }
+		derniereAction=1;
+	}
+	void deplacerDOWN() { 
+		if(positionActuelle.getRow()+2<rowNb-1) {
+			if(board[positionActuelle.getRow()+1][positionActuelle.getCol()].getContent().equals(Cell.Box)&&board[positionActuelle.getRow()+2][positionActuelle.getCol()].getContent().equals(Cell.Target)) {
+				Position positionBoite= new Position(positionActuelle.getRow()+1,positionActuelle.getCol());
+				board[positionActuelle.getRow()][positionActuelle.getCol()].setContent(Cell.Empty);
+				board[positionActuelle.getRow()+1][positionActuelle.getCol()].setContent(Cell.Me);
+				board[positionActuelle.getRow()+2][positionActuelle.getCol()].setContent(Cell.BoxOnTarget);
+				positionActuelle.setRow(positionActuelle.getRow()+1);
+				int i=getIndex(boxes,positionBoite);
+				boxes.get(i).setRow(positionBoite.getRow()+1);
+			}
+		}
+		
+		if(board[positionActuelle.getRow()+1][positionActuelle.getCol()].getContent().equals(Cell.World) ) {
+				
+				if(positionActuelle.getRow()+2<rowNb) {
+					
+					if(board[positionActuelle.getRow()+2][positionActuelle.getCol()].getContent().equals(Cell.Empty)) {
+						Position p=new Position(positionActuelle.getRow()+1,positionActuelle.getCol());
+				Monde m=rechMonde(p,lesMondes);
+				lesMondes.remove(p, m);
+				p.setRow(p.getRow()+1);
+				lesMondes.put(p, m);
+				board[positionActuelle.getRow()][positionActuelle.getCol()].setContent(Cell.Empty);
+				board[positionActuelle.getRow()+2][positionActuelle.getCol()].setContent(Cell.World);
+				board[positionActuelle.getRow()+1][positionActuelle.getCol()].setContent(Cell.Me);
+				positionActuelle.setRow(positionActuelle.getRow()+1);
+					}
+					
+					
+					
+					
+				}
+				/*else { 
+					board[positionActuelle.getRow()][positionActuelle.getCol()].setContent(Cell.Empty);
+					board[positionActuelle.getRow()-2][positionActuelle.getCol()].setContent(Cell.World);
+					board[positionActuelle.getRow()-1][positionActuelle.getCol()].setContent(Cell.Me);
+					positionActuelle.setRow(positionActuelle.getRow()-1);
+				}*/
+				if(positionActuelle.getRow()+1==rowNb-1) {//on entre le monde
+					positionMonde=new Position(positionActuelle.getRow()+1,positionActuelle.getCol());
+					Monde monde= lesMondes.get(new Position(positionActuelle.getRow()+1,positionActuelle.getCol()));
+					Position p;
+					if ( (p=trouverPorte(monde,rowNb-1)) != null  ) {//on a trouvé une porte et on peut y accéder
+						//on doit sauvegarder la position sur le board et on doit se déplacer sur le monde 
+						board[positionActuelle.getRow()][positionActuelle.getCol()].setContent(Cell.Empty);
+						estMonde=true;
+						boardSauv=board;
+						board=monde.getMatrice();
+						colNb=rowNb=board.length;
+						positionActuelle=p;
+					    board[p.getRow()][p.getCol()].setContent(Cell.Me);
+				}
+				}
+				else if (positionActuelle.getRow()+2==rowNb-1 && board[positionActuelle.getRow()+2][positionActuelle.getCol()].getContent().equals(Cell.Wall) ) {
+					positionMonde=new Position(positionActuelle.getRow()+1,positionActuelle.getCol());
+					Monde monde= lesMondes.get(new Position(positionActuelle.getRow()+1,positionActuelle.getCol()));
+					Position p;
+					if ( (p=trouverPorte(monde,0)) != null  ) {//on a trouvé une porte et on peut y accéder
+						//on doit sauvegarder la position sur le board et on doit se déplacer sur le monde 
+						board[positionActuelle.getRow()][positionActuelle.getCol()].setContent(Cell.Empty);
+						estMonde=true;
+						boardSauv=board;
+						board=monde.getMatrice();
+						colNb=rowNb=board.length;
+						positionActuelle=p;
+					    board[p.getRow()][p.getCol()].setContent(Cell.Me);
+					
+				}}
+				
+				
+				
+				
+				
+		}
+	/*	else	if(board[positionActuelle.getRow()-1][positionActuelle.getCol()].getContent().equals(Cell.World) &&(board[positionActuelle.getRow()-1][positionActuelle.getCol()].getContent().equals(Cell.Wall) || positionActuelle.getRow()-1==0) ) {
+			///on recherche une porte si on peut entrer 
+			//dans la bordure en dessous
+			System.out.println(")))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))<<<");
+			positionMonde=new Position(positionActuelle.getRow()-1,positionActuelle.getCol());
+			Monde monde= lesMondes.get(new Position(positionActuelle.getRow()-1,positionActuelle.getCol()));
+			Position p;
+			if ( (p=trouverPorte(monde,0)) != null  ) {//on a trouvé une porte et on peut y accéder
+				//on doit sauvegarder la position sur le board et on doit se déplacer sur le monde 
+				board[positionActuelle.getRow()][positionActuelle.getCol()].setContent(Cell.Empty);
+				estMonde=true;
+				boardSauv=board;
+				board=monde.getMatrice();
+				colNb=rowNb=board.length;
+				positionActuelle=p;
+			    board[p.getRow()][p.getCol()].setContent(Cell.Me);
+			}
+		}*/
+		
+		
+		
+		else
+		//this.afficherBoxes();
+		//if (positionActuelle.getRow()==0 && !estMonde) return ; //on est à la premiere ligne
+		if( positionActuelle.getRow()<rowNb) {// c-a-d on est dans la matrice
+		// permier cas : un vide en dessus
+			if(board[positionActuelle.getRow()+1][positionActuelle.getCol()].getContent().equals(Cell.Empty)&& board[positionActuelle.getRow()][positionActuelle.getCol()].getContent().equals(Cell.Me)) {
+				board[positionActuelle.getRow()][positionActuelle.getCol()].setContent(Cell.Empty);
+				positionActuelle.setRow(positionActuelle.getRow()+1);
+				board[positionActuelle.getRow()][positionActuelle.getCol()].setContent(Cell.Me);
+			}
+			else  {
+				if (board[positionActuelle.getRow()+1][positionActuelle.getCol()].getContent().equals(Cell.Wall)) return ;//si c un mur on ne faot rien
+				else {
+					if (board[positionActuelle.getRow()+1][positionActuelle.getCol()].getContent().equals(Cell.Box) || board[positionActuelle.getRow()+1][positionActuelle.getCol()].getContent().equals(Cell.BoxOnTarget) ) {//Faut traiter le cas d'une liste de boîtes
+						//vérifier s'il y en a des boîtes en haut et puis faire le déplacement à la fois
+						//on utilisera une boucle qui cherche sk y en a des boîtes et sk on est arrivé au mur ou si on est sur la bordure
+						// et si on pousse une boite qui se trouve sa cible ?
+					 // System.out.println("hdgfhkdgfhqsgfkjf");
+						//aff_mat(boardSauv,boardSauv.length);
+						if( boardSauv==null) {if( positionActuelle.getRow()<rowNb) {
+							// permier cas : un vide en dessus
+							if(board[positionActuelle.getRow()+1][positionActuelle.getCol()].getContent().equals(Cell.Empty)&& board[positionActuelle.getRow()][positionActuelle.getCol()].getContent().equals(Cell.Me)) {
+								board[positionActuelle.getRow()][positionActuelle.getCol()].setContent(Cell.Empty);
+								positionActuelle.setRow(positionActuelle.getRow()+1);
+								board[positionActuelle.getRow()][positionActuelle.getCol()].setContent(Cell.Me);
+							}
+							else  {
+								if (board[positionActuelle.getRow()+1][positionActuelle.getCol()].getContent().equals(Cell.Wall)) return ;
+								else {
+									if (board[positionActuelle.getRow()+1][positionActuelle.getCol()].getContent().equals(Cell.Box)) {//Faut traiter le cas d'une liste de boîtes
+										//vérifier s'il y en a des boîtes en haut et puis faire le déplacement à la fois
+										//on utilisera une boucle qui cherche sk y en a des boîtes et sk on est arrivé au mur ou si on est sur la bordure
+										int ligne=positionActuelle.getRow()+1;
+										ArrayList<Position> contBoites=new  ArrayList<Position>();
+										while (ligne<rowNb-1) {
+											if(board[ligne][positionActuelle.getCol()].getContent().equals(Cell.Box)) {
+												//on peut créer une nouvelle liste qui comporte ces boîtes et qu'on modifiera
+												//soit on ajoute a la liste au meme temps ou bien on ajoute a la fin
+												contBoites.add(new Position(ligne,positionActuelle.getCol()));
+												ligne++;
+											}
+											if(board[ligne][positionActuelle.getCol()].getContent().equals(Cell.Empty)) {
+												//on fait le déplacement de tous les boîtes
+												//on revient a la position actuelle et on change les modifications 
+												board[positionActuelle.getRow()][positionActuelle.getCol()].setContent(Cell.Empty);
+												board[positionActuelle.getRow()+1][positionActuelle.getCol()].setContent(Cell.Me);
+												board[ligne][positionActuelle.getCol()].setContent(Cell.Box);
+												//on doit faire les changement dans la liste des boîtes
+												int indicePrm = boxes.indexOf(contBoites.get(0));
+												//CA MARCHEEEEEEEEEE!!!!!!!!!
+												boxes.set(indicePrm,new Position(ligne,positionActuelle.getCol()));
+												positionActuelle.setRow(positionActuelle.getRow()+1);
+												return;
+											}if(board[ligne][positionActuelle.getCol()].getContent().equals(Cell.Wall)) return;
+										}
+										if((positionActuelle.getRow()+2)<rowNb ) {
+											if(board[positionActuelle.getRow()+2][positionActuelle.getCol()].getContent().equals(Cell.Empty)) {
+												board[positionActuelle.getRow()][positionActuelle.getCol()].setContent(Cell.Empty);
+												board[positionActuelle.getRow()+1][positionActuelle.getCol()].setContent(Cell.Me);
+												board[positionActuelle.getRow()+2][positionActuelle.getCol()].setContent(Cell.Box);
+												positionActuelle.setRow(positionActuelle.getRow()+1);
+											}//les autres cas on ne fait rien 	
+											if ( (positionActuelle.getRow()+2)<rowNb)
+												if(board[positionActuelle.getRow()+2][positionActuelle.getCol()].getContent().equals(Cell.Target)) {
+													board[positionActuelle.getRow()][positionActuelle.getCol()].setContent(Cell.Empty);
+													board[positionActuelle.getRow()+1][positionActuelle.getCol()].setContent(Cell.Me);
+													board[positionActuelle.getRow()+2][positionActuelle.getCol()].setContent(Cell.BoxOnTarget);
+													positionActuelle.setRow(positionActuelle.getRow()+1);
+												}
+										}
+										
+									}
+									else {
+										//if(board[positionActuelle.getRow()-1][positionActuelle.getCol()].getContent().equals(Cell.Target)) {
+										if(board[positionActuelle.getRow()+1][positionActuelle.getCol()].getContent().equals(Cell.Target)) {
+											board[positionActuelle.getRow()][positionActuelle.getCol()].setContent(Cell.Empty);
+											board[positionActuelle.getRow()+1][positionActuelle.getCol()].setContent(Cell.MeOnTarget);
+											positionActuelle.setRow(positionActuelle.getRow()+1);
+											
+										}else {
+											if(board[positionActuelle.getRow()][positionActuelle.getCol()].getContent().equals(Cell.MeOnTarget)) {
+												if(board[positionActuelle.getRow()+1][positionActuelle.getCol()].getContent().equals(Cell.Empty)) {
+													board[positionActuelle.getRow()+1][positionActuelle.getCol()].setContent(Cell.Me);
+													board[positionActuelle.getRow()][positionActuelle.getCol()].setContent(Cell.Target);
+													positionActuelle.setRow(positionActuelle.getRow()+1);
+												}
+											}
+										
+										}
+										
+									}
+								} 
+							}	
+						}}else 
+						if( /*board.length!=boardSauv.length &&*/ positionActuelle.getRow()+1==rowNb-1 && board[positionActuelle.getRow()+1][positionActuelle.getCol()].getContent().equals(Cell.Box) && boardSauv[positionMonde.getRow()+1][positionMonde.getCol()].getContent().equals(Cell.Empty)  ) {
+							//on sort la boite du monde
+					    	Position positionBoite= new Position(positionActuelle.getRow()+1,positionActuelle.getCol());
+							board[positionActuelle.getRow()][positionActuelle.getCol()].setContent(Cell.Empty);
+							positionActuelle.setRow(positionActuelle.getRow()+1);
+							board[positionActuelle.getRow()][positionActuelle.getCol()].setContent(Cell.Me);
+							boardSauv[positionMonde.getRow()+1][positionMonde.getCol()].setContent(Cell.Box);
+							int i=getIndex(boxes,positionBoite);
+							boxes.get(i).setRow(positionMonde.getRow()+1);
+							boxes.get(i).setCol(positionMonde.getCol());
+						}
+					else {		//et le cas q"on on sort d'un monde et y a en dessus une boite après un vide donc on pourra pousser à partir du monde la boite
+						//je traite le cas d'une seule boite :
+						
+						
+						
+						
+
+					
+					/*	
+						if(board[positionActuelle.getRow()-1][positionMonde.getCol()].getContent().equals(Cell.Box) && board[positionActuelle.getRow()-2][positionActuelle.getCol()].getContent().equals(Cell.Empty)&& board.length==boardSauv.length) {
+							Position positionBoite= new Position(positionActuelle.getRow()-1,positionActuelle.getCol());
+							board[positionActuelle.getRow()][positionActuelle.getCol()].setContent(Cell.Empty);
+							board[positionActuelle.getRow()-1][positionActuelle.getCol()].setContent(Cell.Me);
+							board[positionActuelle.getRow()-2][positionActuelle.getCol()].setContent(Cell.Box);
+							positionActuelle.setRow(positionActuelle.getRow()-1);
+							//n oublie pas de modifier la liste des boites
+							//on supprime de la liste des boites la boite avec l ancienne position pour la mettre a jour
+							int i=getIndex(boxes,positionBoite);
+							boxes.get(i).setRow(positionBoite.getRow()-1);
+							boxes.get(i).setCol(positionMonde.getCol());
+						}
+						
+						else
+						*/
+						
+						
+						
+						if(board[positionActuelle.getRow()+1][positionActuelle.getCol()].getContent().equals(Cell.Box) && board[positionActuelle.getRow()+2][positionActuelle.getCol()].getContent().equals(Cell.Empty)&& board.length==boardSauv.length) {
+							Position positionBoite= new Position(positionActuelle.getRow()+1,positionActuelle.getCol());
+							board[positionActuelle.getRow()][positionActuelle.getCol()].setContent(Cell.Empty);
+							board[positionActuelle.getRow()+1][positionActuelle.getCol()].setContent(Cell.Me);
+							board[positionActuelle.getRow()+2][positionActuelle.getCol()].setContent(Cell.Box);
+							positionActuelle.setRow(positionActuelle.getRow()+1);
+							//n oublie pas de modifier la liste des boites
+							//on supprime de la liste des boites la boite avec l ancienne position pour la mettre a jour
+							int i=getIndex(boxes,positionBoite);
+							boxes.get(i).setRow(positionBoite.getRow()+1);
+							boxes.get(i).setCol(positionMonde.getCol());
+						}
+						else if(positionActuelle.getRow()==rowNb-1 && boardSauv[positionMonde.getRow()+1][positionMonde.getCol()].getContent().equals(Cell.Box)&& boardSauv[positionMonde.getRow()+2][positionMonde.getCol()].getContent().equals(Cell.Empty)&& board.length!=boardSauv.length ) {
+							Position positionBoite= new Position(positionMonde.getRow()+1,positionMonde.getCol());
+							board[positionActuelle.getRow()][positionActuelle.getCol()].setContent(Cell.Empty);
+							boardSauv[positionMonde.getRow()+1][positionMonde.getCol()].setContent(Cell.Me);
+							boardSauv[positionMonde.getRow()+2][positionMonde.getCol()].setContent(Cell.Box);
+							positionActuelle.setRow(positionMonde.getRow()+1);
+							positionActuelle.setCol(positionMonde.getCol());
+							board=boardSauv;
+							int i=getIndex(boxes,positionBoite);							
+							boxes.get(i).setRow(positionBoite.getRow()+1);
+							boxes.get(i).setCol(positionMonde.getCol());
+						}
+						else {
+						int ligne=positionActuelle.getRow()+1;
+						ArrayList<Position> contBoites=new  ArrayList<Position>();
+						while (ligne<rowNb-1) {//cas juste une seule boite!
+							if(board[ligne][positionActuelle.getCol()].getContent().equals(Cell.Box) /*|| board[ligne][positionActuelle.getCol()].getContent().equals(Cell.BoxOnTarget)*/) {
+								//on peut créer une nouvelle liste qui comporte ces boîtes et qu'on modifiera
+								//soit on ajoute a la liste au meme temps ou bien on ajoute a la fin
+							contBoites.add(new Position(ligne,positionActuelle.getCol()));
+								ligne++;
+								}
+							//traitement premiere boite et derniere boite sue une cible
+							if(board[ligne][positionActuelle.getCol()].getContent().equals(Cell.Empty)) {
+								//on fait le déplacement de tous les boîtes
+								//on revient a la position actuelle et on change les modifications 
+								board[positionActuelle.getRow()+1][positionActuelle.getCol()].setContent(Cell.Me);
+								board[ligne][positionActuelle.getCol()].setContent(Cell.Box);
+								//on doit faire les changement dans la liste des boîtes
+								int indicePrm = boxes.indexOf(contBoites.get(0));
+								//CA MARCHEEEEEEEEEE!!!!!!!!!
+								boxes.set(indicePrm,new Position(ligne,positionActuelle.getCol()));
+								System.out.println("down"+boxes.size());
+							    for(Position p :boxes){
+							    	System.out.println(+p.getRow());
+							    	System.out.println(+p.getCol());
+							    	System.out.println("---");
+							    }
+							    
+								if(board[positionActuelle.getRow()][positionActuelle.getCol()].getContent().equals(Cell.MeOnTarget)) {
+									board[positionActuelle.getRow()][positionActuelle.getCol()].setContent(Cell.Target);
+									//le cas si on est sur cible et on la quitte 
+								}
+								else board[positionActuelle.getRow()][positionActuelle.getCol()].setContent(Cell.Empty);
+								positionActuelle.setRow(positionActuelle.getRow()+1);
+								//on traite le cas une boîte sur la cible 
+								//ATTENTION on doit modifie
+								//on arrête de chercher d autres boîtes
+								//et on sort de la méthode 
+								return;
+							}
+							else {
+								if(board[ligne][positionActuelle.getCol()].getContent().equals(Cell.Target)) {
+									//on traite le cas une cible est en haut 
+									board[ligne][positionActuelle.getCol()].setContent(Cell.BoxOnTarget);// WORKS !!!
+								}
+							}
+							//si c est un mur on arrête de chercher
+							//on sort carrément de la méthode 
+							if(board[ligne][positionActuelle.getCol()].getContent().equals(Cell.Wall)) return;
+						}
+						if((positionActuelle.getRow()+2)<rowNb ) { 
+							if(board[positionActuelle.getRow()+2][positionActuelle.getCol()].getContent().equals(Cell.Empty)) {
+								board[positionActuelle.getRow()][positionActuelle.getCol()].setContent(Cell.Empty);
+								board[positionActuelle.getRow()+1][positionActuelle.getCol()].setContent(Cell.Me);
+								board[positionActuelle.getRow()+2][positionActuelle.getCol()].setContent(Cell.Box);
+								positionActuelle.setRow(positionActuelle.getRow()+1);
+							}//les autres cas on ne fait rien 	
+							if ( (positionActuelle.getRow()+2)>rowNb)
+								if(board[positionActuelle.getRow()+2][positionActuelle.getCol()].getContent().equals(Cell.Target)) {
+									board[positionActuelle.getRow()][positionActuelle.getCol()].setContent(Cell.Empty);
+									board[positionActuelle.getRow()+1][positionActuelle.getCol()].setContent(Cell.Me);
+									board[positionActuelle.getRow()+2][positionActuelle.getCol()].setContent(Cell.BoxOnTarget);
+									positionActuelle.setRow(positionActuelle.getRow()+1);
+								}
+						}
+					}
+					}	
+					}
+					else {
+						if(board[positionActuelle.getRow()+1][positionActuelle.getCol()].getContent().equals(Cell.Target)) {
+							board[positionActuelle.getRow()][positionActuelle.getCol()].setContent(Cell.Empty);
+							board[positionActuelle.getRow()+1][positionActuelle.getCol()].setContent(Cell.MeOnTarget);
+							positionActuelle.setRow(positionActuelle.getRow()+1);
+						}else {
+							if(board[positionActuelle.getRow()][positionActuelle.getCol()].getContent().equals(Cell.MeOnTarget)) {
+								if(board[positionActuelle.getRow()+1][positionActuelle.getCol()].getContent().equals(Cell.Empty)) {
+									board[positionActuelle.getRow()+1][positionActuelle.getCol()].setContent(Cell.Me);
+									board[positionActuelle.getRow()][positionActuelle.getCol()].setContent(Cell.Target);
+									positionActuelle.setRow(positionActuelle.getRow()+1);
+								}
+							}
+							else {//on fera juste un monde au plus ALLAH GHALEB on n'a ni le temps ni les compétences pour faire plus
+								if(board[positionActuelle.getRow()+1][positionActuelle.getCol()].getContent().equals(Cell.World)) {
+									///on recherche une porte si on peut entrer 
+									//dans la bordure en dessous
+									positionMonde=new Position(positionActuelle.getRow()+1,positionActuelle.getCol());
+									Monde monde= lesMondes.get(new Position(positionActuelle.getRow()+1,positionActuelle.getCol()));
+									Position p;
+									if ( (p=trouverPorte(monde,rowNb-1)) != null  ) {//on a trouvé une porte et on peut y accéder
+										//on doit sauvegarder la position sur le board et on doit se déplacer sur le monde 
+										board[positionActuelle.getRow()][positionActuelle.getCol()].setContent(Cell.Empty);
+										estMonde=true;
+										boardSauv=board;
+										board=monde.getMatrice();
+		colNb=rowNb=board.length;
+										positionActuelle=p;
+									    board[p.getRow()][p.getCol()].setContent(Cell.Me);
+									}
+								}else {// cas on est dans un monde et si on sorte du monde
+									if( estMonde) {
+										if (positionActuelle.getRow()==rowNb-1 && positionMonde.getRow()<rowNb-1) {
+											//donc on peut sortir du monde 
+											if(board[positionMonde.getRow()+1][positionMonde.getCol()].getContent().equals(Cell.Empty)) {
+												positionActuelle.setCol(positionMonde.getCol());
+												positionActuelle.setRow(positionMonde.getRow()+1);
+											}
+											else {//on bouge le monde comme une boite
+												//on modifie sa position dans la liste des mondes 
+												Position posMonde=positionMonde;
+												board[positionMonde.getRow()][positionMonde.getCol()].setContent(Cell.Box);
+												deplacerDOWN();
+												if(!posMonde.equals(new Position(posMonde.getRow()+1,posMonde.getCol()))) {
+												board[positionMonde.getRow()+1][positionMonde.getCol()].setContent(Cell.World);
+												//MAJ de la liste des world 
+												Monde m= lesMondes.get(posMonde);
+												lesMondes.remove(positionMonde);
+												lesMondes.put(new Position(positionMonde.getRow()+1,positionMonde.getCol()), m);
+												}
+											}
+										}
+									}
+								}
+							}
+						}
+					}
+				} 
+			}	
+		}
+		else {
+			//cas pour sortir d un monde
+			if(positionActuelle.getRow()==rowNb-1) {
+				if(boardSauv[positionMonde.getRow()+1][positionMonde.getCol()].getContent().equals(Cell.Empty) || boardSauv[positionMonde.getRow()][positionMonde.getCol()].getContent().equals(Cell.Target) ){
+					board[positionActuelle.getRow()][positionActuelle.getCol()].setContent(Cell.Empty);
+					positionActuelle.setCol(positionMonde.getCol());
+					positionActuelle.setRow(positionMonde.getRow()+1);
+					board=boardSauv;
+					colNb=rowNb=board.length;
+					board[positionActuelle.getRow()][positionActuelle.getCol()].setContent(Cell.Me);
+				}
+				else if(boardSauv[positionMonde.getRow()+1][positionMonde.getCol()].getContent().equals(Cell.Box) && boardSauv[positionMonde.getRow()+2][positionMonde.getCol()].getContent().equals(Cell.Empty) ) {
+					Position positionBoite = new Position(positionMonde.getRow()+1,positionMonde.getCol());
+					board[positionActuelle.getRow()][positionActuelle.getCol()].setContent(Cell.Empty);
+					positionBoite.printPosition();
+					boardSauv[positionMonde.getRow()+1][positionMonde.getCol()].setContent(Cell.Me);
+					boardSauv[positionMonde.getRow()+2][positionMonde.getCol()].setContent(Cell.Box);
+					positionActuelle.setRow(positionMonde.getRow()+1);
+					board=boardSauv;
+					colNb=rowNb=board.length;
+							//n oublie pas de modifier la liste des boites
+					int i=getIndex(boxes,positionBoite);
+					boxes.get(i).setRow(positionBoite.getRow()+1);
+					boxes.get(i).setCol(positionMonde.getCol());
+				}
+			}	
+			else {
+			estMonde=false;
+			deplacerDOWN();
+			estMonde=true;
+			}
+		}
+		if(iswon()==true) {
+        	System.out.println("BRAVO");
+        }
+		derniereAction=2;
 	}
 	
 	public static int getIndex(ArrayList<Position> positions,Position p) {
@@ -779,67 +1224,54 @@ public class Niveau  {
 		
 	}
 
-	void deplacerDOWN() { 
-		if(boardSauv!=null && positionActuelle.getRow()==colNb-1  )
-		//	if(boardSauv[positionActuelle.getRow()+1][positionActuelle.getCol()].getContent().equals(Cell.World))
-			if (positionActuelle.getRow()==rowNb-1 && positionMonde.getRow()<rowNb-1) {
-				//donc on peut sortir du monde 
-				System.out.println("ezghifkjdbvhik");
-				if(board[positionMonde.getRow()+1][positionMonde.getCol()].getContent().equals(Cell.Empty)) {
-					positionActuelle.setCol(positionMonde.getCol());
-					positionActuelle.setRow(positionMonde.getRow()+1);
-				}
-				else {//on bouge le monde comme une boite
-					//on modifie sa position dans la liste des mondes 
-					Position posMonde=positionMonde;
-					board[positionMonde.getRow()][positionMonde.getCol()].setContent(Cell.Box);
-					deplacerDOWN();
-					if(!posMonde.equals(new Position(posMonde.getRow()+1,posMonde.getCol()))) {
-					board[positionMonde.getRow()+1][positionMonde.getCol()].setContent(Cell.World);
-					//MAJ de la liste des world 
-					Monde m= lesMondes.get(posMonde);
-					lesMondes.remove(positionMonde);
-					lesMondes.put(new Position(positionMonde.getRow()+1,positionMonde.getCol()), m);
-					}
-				}
-			}
+	 
+	
+	
+	
+void deplacerRIGHT() { 
 		
 		
 		
-		if(positionActuelle.getRow()+2<colNb-1) {
-			if(board[positionActuelle.getRow()+1][positionActuelle.getCol()].getContent().equals(Cell.Box)&&board[positionActuelle.getRow()+2][positionActuelle.getCol()].getContent().equals(Cell.Target)) {
+		
+		if(positionActuelle.getCol()+2<colNb-1) {
+			if(board[positionActuelle.getRow()][positionActuelle.getCol()+1].getContent().equals(Cell.Box)&&board[positionActuelle.getRow()][positionActuelle.getCol()+2].getContent().equals(Cell.Target)) {
+				Position positionBoite= new Position(positionActuelle.getRow(),positionActuelle.getCol()+1);
 				board[positionActuelle.getRow()][positionActuelle.getCol()].setContent(Cell.Empty);
-				board[positionActuelle.getRow()+1][positionActuelle.getCol()].setContent(Cell.Me);
-				board[positionActuelle.getRow()+2][positionActuelle.getCol()].setContent(Cell.BoxOnTarget);
-				positionActuelle.setRow(positionActuelle.getRow()+1);
+				board[positionActuelle.getRow()][positionActuelle.getCol()+1].setContent(Cell.Me);
+				board[positionActuelle.getRow()][positionActuelle.getCol()+2].setContent(Cell.BoxOnTarget);
+				positionActuelle.setCol(positionActuelle.getCol()+1);
+				int i=getIndex(boxes,positionBoite);
+				boxes.get(i).setCol(positionBoite.getCol()+1);
+				
 			}
 		}
 		
-	if(	positionActuelle.getRow()+1<colNb )	if(board[positionActuelle.getRow()+1][positionActuelle.getCol()].getContent().equals(Cell.World) ) {
+		if(board[positionActuelle.getRow()][positionActuelle.getCol()+1].getContent().equals(Cell.World) ) {
 				
-				if(positionActuelle.getRow()+2<=colNb-1) {
+				if(positionActuelle.getCol()+2<colNb) {
 					
-					if(board[positionActuelle.getRow()+2][positionActuelle.getCol()].getContent().equals(Cell.Empty)) {
-						Position p=new Position(positionActuelle.getRow()+1,positionActuelle.getCol());
+					if(board[positionActuelle.getRow()][positionActuelle.getCol()+2].getContent().equals(Cell.Empty)) {
+						Position p=new Position(positionActuelle.getRow(),positionActuelle.getCol()+1);
 				Monde m=rechMonde(p,lesMondes);
 				lesMondes.remove(p, m);
-				p.setRow(p.getRow()+1);
+		 		p.setCol(p.getCol()+1);
 				lesMondes.put(p, m);
 				board[positionActuelle.getRow()][positionActuelle.getCol()].setContent(Cell.Empty);
-				board[positionActuelle.getRow()+2][positionActuelle.getCol()].setContent(Cell.World);
-				board[positionActuelle.getRow()+1][positionActuelle.getCol()].setContent(Cell.Me);
-				positionActuelle.setRow(positionActuelle.getRow()+1);
+				board[positionActuelle.getRow()][positionActuelle.getCol()+2].setContent(Cell.World);
+				board[positionActuelle.getRow()][positionActuelle.getCol()+1].setContent(Cell.Me);
+				positionActuelle.setCol(positionActuelle.getCol()+1);
 					}
 					
 					
 					
 					
 				}
-				if(positionActuelle.getRow()+1==colNb-1) {//on entre le monde
-					positionMonde=new Position(positionActuelle.getRow()+1,positionActuelle.getCol());
-					Monde monde= lesMondes.get(new Position(positionActuelle.getRow()+1,positionActuelle.getCol()));
+			 
+				if(positionActuelle.getCol()+1==colNb-1) {//on entre le monde
+					positionMonde=new Position(positionActuelle.getRow(),positionActuelle.getCol()+1);
+					Monde monde= lesMondes.get(new Position(positionActuelle.getRow(),positionActuelle.getCol()+1));
 					Position p;
-					if ( (p=trouverPorte(monde,3)) != null  ) {//on a trouvé une porte et on peut y accéder
+					if ( (p=trouverPorte(monde,colNb-1)) != null  ) {//on a trouvé une porte et on peut y accéder
 						//on doit sauvegarder la position sur le board et on doit se déplacer sur le monde 
 						board[positionActuelle.getRow()][positionActuelle.getCol()].setContent(Cell.Empty);
 						estMonde=true;
@@ -850,11 +1282,11 @@ public class Niveau  {
 					    board[p.getRow()][p.getCol()].setContent(Cell.Me);
 				}
 				}
-				else if (positionActuelle.getRow()+2==colNb-1 && board[positionActuelle.getRow()+2][positionActuelle.getCol()].getContent().equals(Cell.Wall) ) {
-					positionMonde=new Position(positionActuelle.getRow()+1,positionActuelle.getCol());
-					Monde monde= lesMondes.get(new Position(positionActuelle.getRow()+1,positionActuelle.getCol()));
+				else if (positionActuelle.getCol()+2==colNb-1 && board[positionActuelle.getRow()][positionActuelle.getCol()+2].getContent().equals(Cell.Wall) ) {
+					positionMonde=new Position(positionActuelle.getRow(),positionActuelle.getCol()+1);
+					Monde monde= lesMondes.get(new Position(positionActuelle.getRow(),positionActuelle.getCol()+1));
 					Position p;
-					if ( (p=trouverPorte(monde,3)) != null  ) {//on a trouvé une porte et on peut y accéder
+					if ( (p=trouverPorte(monde,colNb-1)) != null  ) {//on a trouvé une porte et on peut y accéder
 						//on doit sauvegarder la position sur le board et on doit se déplacer sur le monde 
 						board[positionActuelle.getRow()][positionActuelle.getCol()].setContent(Cell.Empty);
 						estMonde=true;
@@ -865,398 +1297,16 @@ public class Niveau  {
 					    board[p.getRow()][p.getCol()].setContent(Cell.Me);
 					
 				}}
+				
+				
 		}
+		
 		
 		
 		else
-		
-		
-		
-		
-		//if (positionActuelle.getRow()==rowNb-1 && !estMonde) return ; //on est à la derniere ligne
-		if(positionActuelle.getRow()+2>colNb-1) {
-			if(board[positionActuelle.getRow()+1][positionActuelle.getCol()].getContent().equals(Cell.Box)&&board[positionActuelle.getRow()+2][positionActuelle.getCol()].getContent().equals(Cell.Target)) {
-				board[positionActuelle.getRow()][positionActuelle.getCol()].setContent(Cell.Empty);
-				board[positionActuelle.getRow()+1][positionActuelle.getCol()].setContent(Cell.Me);
-				board[positionActuelle.getRow()+2][positionActuelle.getCol()].setContent(Cell.BoxOnTarget);
-				positionActuelle.setRow(positionActuelle.getRow()+1);
-			}
-		}
-		
-	if(positionActuelle.getRow()+1<colNb)	if(board[positionActuelle.getRow()+1][positionActuelle.getCol()].getContent().equals(Cell.World) ) {
-				
-				if(positionActuelle.getRow()+2>=colNb-1) {
-					
-					if(board[positionActuelle.getRow()+2][positionActuelle.getCol()].getContent().equals(Cell.Empty)) {
-						Position p=new Position(positionActuelle.getRow()+1,positionActuelle.getCol());
-				Monde m=rechMonde(p,lesMondes);
-				lesMondes.remove(p, m);
-				p.setRow(p.getRow()+1);
-				lesMondes.put(p, m);
-				board[positionActuelle.getRow()][positionActuelle.getCol()].setContent(Cell.Empty);
-				board[positionActuelle.getRow()+2][positionActuelle.getCol()].setContent(Cell.World);
-				board[positionActuelle.getRow()+1][positionActuelle.getCol()].setContent(Cell.Me);
-				positionActuelle.setRow(positionActuelle.getRow()+1);
-					}
-				}
-				if(positionActuelle.getRow()+1==colNb-1) {//on entre le monde
-					positionMonde=new Position(positionActuelle.getRow()+1,positionActuelle.getCol());
-					Monde monde= lesMondes.get(new Position(positionActuelle.getRow()+1,positionActuelle.getCol()));
-					Position p;
-					if ( (p=trouverPorte(monde,3)) != null  ) {//on a trouvé une porte et on peut y accéder
-						//on doit sauvegarder la position sur le board et on doit se déplacer sur le monde 
-						board[positionActuelle.getRow()][positionActuelle.getCol()].setContent(Cell.Empty);
-						estMonde=true;
-						boardSauv=board;
-						board=monde.getMatrice();
-						colNb=rowNb=board.length;
-						positionActuelle=p;
-					    board[p.getRow()][p.getCol()].setContent(Cell.Me);
-				}
-				}
-				
-				
-				if( positionActuelle.getRow()<rowNb) {
-					if(board[positionActuelle.getRow()+1][positionActuelle.getCol()].getContent().equals(Cell.Empty)&& board[positionActuelle.getRow()][positionActuelle.getCol()].getContent().equals(Cell.Me)) {
-						board[positionActuelle.getRow()][positionActuelle.getCol()].setContent(Cell.Empty);
-						positionActuelle.setRow(positionActuelle.getRow()+1);
-						board[positionActuelle.getRow()][positionActuelle.getCol()].setContent(Cell.Me);
-					}
-					else  {
-						if (board[positionActuelle.getRow()+1][positionActuelle.getCol()].getContent().equals(Cell.Wall)) return ;
-						else {
-							if (board[positionActuelle.getRow()+1][positionActuelle.getCol()].getContent().equals(Cell.Box)) {
-								if((positionActuelle.getRow()+2)<rowNb ) {
-									if(board[positionActuelle.getRow()+2][positionActuelle.getCol()].getContent().equals(Cell.Empty)) {
-										board[positionActuelle.getRow()][positionActuelle.getCol()].setContent(Cell.Empty);
-										board[positionActuelle.getRow()+1][positionActuelle.getCol()].setContent(Cell.Me);
-										board[positionActuelle.getRow()+2][positionActuelle.getCol()].setContent(Cell.Box);
-										positionActuelle.setRow(positionActuelle.getRow()+1);
-									}//les autres cas on ne fait rien 	
-									if ( (positionActuelle.getRow()+2)<rowNb)
-										if(board[positionActuelle.getRow()+2][positionActuelle.getCol()].getContent().equals(Cell.Target)) {
-											board[positionActuelle.getRow()][positionActuelle.getCol()].setContent(Cell.Empty);
-											board[positionActuelle.getRow()+1][positionActuelle.getCol()].setContent(Cell.Me);
-											board[positionActuelle.getRow()+2][positionActuelle.getCol()].setContent(Cell.BoxOnTarget);
-											positionActuelle.setRow(positionActuelle.getRow()+1);
-										}
-									
-								}
-								
-							}
-							else {
-								//if(board[positionActuelle.getRow()-1][positionActuelle.getCol()].getContent().equals(Cell.Target)) {
-								if(board[positionActuelle.getRow()+1][positionActuelle.getCol()].getContent().equals(Cell.Target)) {
-									board[positionActuelle.getRow()][positionActuelle.getCol()].setContent(Cell.Empty);
-									board[positionActuelle.getRow()+1][positionActuelle.getCol()].setContent(Cell.MeOnTarget);
-									positionActuelle.setRow(positionActuelle.getRow()+1);
-									
-								}else {
-									if(board[positionActuelle.getRow()][positionActuelle.getCol()].getContent().equals(Cell.MeOnTarget)) {
-										if(board[positionActuelle.getRow()+1][positionActuelle.getCol()].getContent().equals(Cell.Empty)) {
-											board[positionActuelle.getRow()+1][positionActuelle.getCol()].setContent(Cell.Me);
-											board[positionActuelle.getRow()][positionActuelle.getCol()].setContent(Cell.Target);
-											positionActuelle.setRow(positionActuelle.getRow()+1);
-										}
-										
-									}
-								}
-								
-							}
-						} 
-					}	
-				}
-				else if (positionActuelle.getRow()+2==colNb && board[positionActuelle.getRow()+2][positionActuelle.getCol()].getContent().equals(Cell.Wall) ) {
-					positionMonde=new Position(positionActuelle.getRow()+1,positionActuelle.getCol());
-					Monde monde= lesMondes.get(new Position(positionActuelle.getRow()-1,positionActuelle.getCol()));
-					Position p;
-					if ( (p=trouverPorte(monde,3)) != null  ) {//on a trouvé une porte et on peut y accéder
-						//on doit sauvegarder la position sur le board et on doit se déplacer sur le monde 
-						board[positionActuelle.getRow()][positionActuelle.getCol()].setContent(Cell.Empty);
-						estMonde=true;
-						boardSauv=board;
-						board=monde.getMatrice();
-						colNb=rowNb=board.length;
-						positionActuelle=p;
-					    board[p.getRow()][p.getCol()].setContent(Cell.Me);
-					
-				}}
-				
-				
-				
-				
-				
-		}else
-		if( positionActuelle.getRow()<rowNb-1) {// c-a-d on est dans la matrice
-		// permier cas : un vide en dessus
-			if(board[positionActuelle.getRow()+1][positionActuelle.getCol()].getContent().equals(Cell.Empty)&& board[positionActuelle.getRow()][positionActuelle.getCol()].getContent().equals(Cell.Me)) {
-				board[positionActuelle.getRow()][positionActuelle.getCol()].setContent(Cell.Empty);
-				positionActuelle.setRow(positionActuelle.getRow()+1);
-				board[positionActuelle.getRow()][positionActuelle.getCol()].setContent(Cell.Me);
-			}
-			else  {
-				if (board[positionActuelle.getRow()+1][positionActuelle.getCol()].getContent().equals(Cell.Wall)) return ;//si c un mur on ne faot rien
-				else {
-					if (board[positionActuelle.getRow()+1][positionActuelle.getCol()].getContent().equals(Cell.Box) || board[positionActuelle.getRow()+1][positionActuelle.getCol()].getContent().equals(Cell.BoxOnTarget) ) {//Faut traiter le cas d'une liste de boîtes
-						//vérifier s'il y en a des boîtes en haut et puis faire le déplacement à la fois
-						//on utilisera une boucle qui cherche sk y en a des boîtes et sk on est arrivé au mur ou si on est sur la bordure
-						// et si on pousse une boite qui se trouve sa cible ?
-					 
-					//	if(board[positionActuelle.getRow()+1][positionActuelle.getCol()].getContent())
-					if(boardSauv==null) {if(positionActuelle.getRow()<colNb-1)	{
-						
-					
-						if( positionActuelle.getRow()<rowNb) {
-							if(board[positionActuelle.getRow()+1][positionActuelle.getCol()].getContent().equals(Cell.Empty)&& board[positionActuelle.getRow()][positionActuelle.getCol()].getContent().equals(Cell.Me)) {
-								board[positionActuelle.getRow()][positionActuelle.getCol()].setContent(Cell.Empty);
-								positionActuelle.setRow(positionActuelle.getRow()+1);
-								board[positionActuelle.getRow()][positionActuelle.getCol()].setContent(Cell.Me);
-							}
-							else  {
-								if (board[positionActuelle.getRow()+1][positionActuelle.getCol()].getContent().equals(Cell.Wall)) return ;
-								else {
-									if (board[positionActuelle.getRow()+1][positionActuelle.getCol()].getContent().equals(Cell.Box)) {
-										if((positionActuelle.getRow()+2)<rowNb ) {
-											if(board[positionActuelle.getRow()+2][positionActuelle.getCol()].getContent().equals(Cell.Empty)) {
-												board[positionActuelle.getRow()][positionActuelle.getCol()].setContent(Cell.Empty);
-												board[positionActuelle.getRow()+1][positionActuelle.getCol()].setContent(Cell.Me);
-												board[positionActuelle.getRow()+2][positionActuelle.getCol()].setContent(Cell.Box);
-												positionActuelle.setRow(positionActuelle.getRow()+1);
-											}//les autres cas on ne fait rien 	
-											if ( (positionActuelle.getRow()+2)<rowNb)
-												if(board[positionActuelle.getRow()+2][positionActuelle.getCol()].getContent().equals(Cell.Target)) {
-													board[positionActuelle.getRow()][positionActuelle.getCol()].setContent(Cell.Empty);
-													board[positionActuelle.getRow()+1][positionActuelle.getCol()].setContent(Cell.Me);
-													board[positionActuelle.getRow()+2][positionActuelle.getCol()].setContent(Cell.BoxOnTarget);
-													positionActuelle.setRow(positionActuelle.getRow()+1);
-												}
-											
-										}
-										
-									}
-									else {
-										//if(board[positionActuelle.getRow()-1][positionActuelle.getCol()].getContent().equals(Cell.Target)) {
-										if(board[positionActuelle.getRow()+1][positionActuelle.getCol()].getContent().equals(Cell.Target)) {
-											board[positionActuelle.getRow()][positionActuelle.getCol()].setContent(Cell.Empty);
-											board[positionActuelle.getRow()+1][positionActuelle.getCol()].setContent(Cell.MeOnTarget);
-											positionActuelle.setRow(positionActuelle.getRow()+1);
-											
-										}else {
-											if(board[positionActuelle.getRow()][positionActuelle.getCol()].getContent().equals(Cell.MeOnTarget)) {
-												if(board[positionActuelle.getRow()+1][positionActuelle.getCol()].getContent().equals(Cell.Empty)) {
-													board[positionActuelle.getRow()+1][positionActuelle.getCol()].setContent(Cell.Me);
-													board[positionActuelle.getRow()][positionActuelle.getCol()].setContent(Cell.Target);
-													positionActuelle.setRow(positionActuelle.getRow()+1);
-												}
-												
-											}
-											
-										}
-										
-									}
-								} 
-							}	
-						}
-					
-					
-					}
-					}
-					else	
-						if( /*board.length!=boardSauv.length &&*/ positionActuelle.getRow()==rowNb-2 && board[positionActuelle.getRow()+1][positionActuelle.getCol()].getContent().equals(Cell.Box) && boardSauv[positionMonde.getRow()+1][positionMonde.getCol()].getContent().equals(Cell.Empty)  ) {
-							//on sort la boite du monde
-					    	Position positionBoite= new Position(positionActuelle.getRow()+1,positionActuelle.getCol());
-							board[positionActuelle.getRow()][positionActuelle.getCol()].setContent(Cell.Empty);
-							positionActuelle.setRow(positionActuelle.getRow()+1);
-							board[positionActuelle.getRow()][positionActuelle.getCol()].setContent(Cell.Me);
-							boardSauv[positionMonde.getRow()+1][positionMonde.getCol()].setContent(Cell.Box);
-							int i=getIndex(boxes,positionBoite);
-							boxes.get(i).setRow(positionMonde.getRow()+1);
-							boxes.get(i).setCol(positionMonde.getCol());
-						}
-					else {
-						if(boardSauv[positionMonde.getRow()+1][positionMonde.getCol()].getContent().equals(Cell.Box) && boardSauv[positionMonde.getRow()+2][positionMonde.getCol()].getContent().equals(Cell.Empty)&& board.length==boardSauv.length ) {
-							Position positionBoite= new Position(positionActuelle.getRow()+1,positionActuelle.getCol());
-							board[positionActuelle.getRow()][positionActuelle.getCol()].setContent(Cell.Empty);
-							board[positionActuelle.getRow()+1][positionActuelle.getCol()].setContent(Cell.Me);
-							board[positionActuelle.getRow()+2][positionActuelle.getCol()].setContent(Cell.Box);
-							positionActuelle.setRow(positionActuelle.getRow()+1);
-							int i=getIndex(boxes,positionBoite);
-							boxes.get(i).setRow(positionBoite.getRow()+1);
-							boxes.get(i).setCol(positionMonde.getCol());
-						}
-						else if(positionActuelle.getRow()==rowNb+1 && boardSauv[positionMonde.getRow()+1][positionMonde.getCol()].getContent().equals(Cell.Box)&& boardSauv[positionMonde.getRow()+2][positionMonde.getCol()].getContent().equals(Cell.Empty)&& board.length!=boardSauv.length ) {
-							Position positionBoite= new Position(positionMonde.getRow()+1,positionMonde.getCol());
-							board[positionActuelle.getRow()][positionActuelle.getCol()].setContent(Cell.Empty);
-							boardSauv[positionMonde.getRow()+1][positionMonde.getCol()].setContent(Cell.Me);
-							boardSauv[positionMonde.getRow()+2][positionMonde.getCol()].setContent(Cell.Box);
-							positionActuelle.setRow(positionMonde.getRow()+1);
-							positionActuelle.setCol(positionMonde.getCol());
-							board=boardSauv;
-							int i=getIndex(boxes,positionBoite);							
-							boxes.get(i).setRow(positionBoite.getRow()+1);
-							boxes.get(i).setCol(positionMonde.getCol());
-						}
-						else {
-						int ligne=positionActuelle.getRow()+1;
-						ArrayList<Position> contBoites=new  ArrayList<Position>();
-						while (ligne<rowNb-1) {//cas juste une seule boite!
-							if(board[ligne][positionActuelle.getCol()].getContent().equals(Cell.Box) /*|| board[ligne][positionActuelle.getCol()].getContent().equals(Cell.BoxOnTarget)*/) {
-								//on peut créer une nouvelle liste qui comporte ces boîtes et qu'on modifiera
-								//soit on ajoute a la liste au meme temps ou bien on ajoute a la fin
-							contBoites.add(new Position(ligne,positionActuelle.getCol()));
-								ligne++;
-								}
-							//traitement premiere boite et derniere boite sue une cible
-							if(board[ligne][positionActuelle.getCol()].getContent().equals(Cell.Empty)) {
-								//on fait le déplacement de tous les boîtes
-								//on revient a la position actuelle et on change les modifications 
-								board[positionActuelle.getRow()][positionActuelle.getCol()].setContent(Cell.Empty);
-								board[positionActuelle.getRow()+1][positionActuelle.getCol()].setContent(Cell.Me);
-								board[ligne][positionActuelle.getCol()].setContent(Cell.Box);
-								//on doit faire les changement dans la liste des boîtes
-								int indicePrm = boxes.indexOf(contBoites.get(contBoites.size()-1));
-								//CA MARCHEEEEEEEEEE!!!!!!!!!
-								boxes.set(indicePrm,new Position(ligne,positionActuelle.getCol()));
-								if(board[positionActuelle.getRow()][positionActuelle.getCol()].getContent().equals(Cell.MeOnTarget)) {
-									board[positionActuelle.getRow()][positionActuelle.getCol()].setContent(Cell.Target);
-									//le cas si on est sur cible et on la quitte 
-								}
-								else board[positionActuelle.getRow()][positionActuelle.getCol()].setContent(Cell.Empty);
-								positionActuelle.setRow(positionActuelle.getRow()+1);
-								//on traite le cas une boîte sur la cible 
-								//ATTENTION on doit modifie
-								//on arrête de chercher d autres boîtes
-								//et on sort de la méthode 
-								return;
-							}
-							else {
-								if(board[ligne][positionActuelle.getCol()].getContent().equals(Cell.Target)) {
-									//on traite le cas une cible est en haut 
-									board[ligne][positionActuelle.getCol()].setContent(Cell.BoxOnTarget);// WORKS !!!
-								}
-							}
-							//si c est un mur on arrête de chercher
-							//on sort carrément de la méthode 
-							if(board[ligne][positionActuelle.getCol()].getContent().equals(Cell.Wall)) return;
-						}
-						if((positionActuelle.getRow()+2)<rowNb-1 ) { 
-							if(board[positionActuelle.getRow()+2][positionActuelle.getCol()].getContent().equals(Cell.Empty)) {
-								board[positionActuelle.getRow()][positionActuelle.getCol()].setContent(Cell.Empty);
-								board[positionActuelle.getRow()+1][positionActuelle.getCol()].setContent(Cell.Me);
-								board[positionActuelle.getRow()+2][positionActuelle.getCol()].setContent(Cell.Box);
-								positionActuelle.setRow(positionActuelle.getRow()+1);
-							}//les autres cas on ne fait rien 	
-							if ( (positionActuelle.getRow()+2)<rowNb)
-								if(board[positionActuelle.getRow()+2][positionActuelle.getCol()].getContent().equals(Cell.Target)) {
-									board[positionActuelle.getRow()][positionActuelle.getCol()].setContent(Cell.Empty);
-									board[positionActuelle.getRow()+1][positionActuelle.getCol()].setContent(Cell.Me);
-									board[positionActuelle.getRow()+2][positionActuelle.getCol()].setContent(Cell.BoxOnTarget);
-									positionActuelle.setRow(positionActuelle.getRow()+1);
-								}
-						}
-					}
-					}	
-					}
-					else {
-						if(board[positionActuelle.getRow()+1][positionActuelle.getCol()].getContent().equals(Cell.Target)) {
-							board[positionActuelle.getRow()][positionActuelle.getCol()].setContent(Cell.Empty);
-							board[positionActuelle.getRow()+1][positionActuelle.getCol()].setContent(Cell.MeOnTarget);
-							positionActuelle.setRow(positionActuelle.getRow()+1);
-						}else {
-							if(board[positionActuelle.getRow()][positionActuelle.getCol()].getContent().equals(Cell.MeOnTarget)) {
-								if(board[positionActuelle.getRow()+1][positionActuelle.getCol()].getContent().equals(Cell.Empty)) {
-									board[positionActuelle.getRow()+1][positionActuelle.getCol()].setContent(Cell.Me);
-									board[positionActuelle.getRow()][positionActuelle.getCol()].setContent(Cell.Target);
-									positionActuelle.setRow(positionActuelle.getRow()+1);
-								}
-							}
-							else {//on fera juste un monde au plus ALLAH GHALEB on n'a ni le temps ni les compétences pour faire plus
-								if(board[positionActuelle.getRow()+1][positionActuelle.getCol()].getContent().equals(Cell.World)) {
-									///on recherche une porte si on peut entrer 
-									//dans la bordure en dessous
-									positionMonde=new Position(positionActuelle.getRow()+1,positionActuelle.getCol());
-									Monde monde= lesMondes.get(new Position(positionActuelle.getRow()+1,positionActuelle.getCol()));
-									Position p;
-									if ( (p=trouverPorte(monde,3)) != null  ) {//on a trouvé une porte et on peut y accéder
-										//on doit sauvegarder la position sur le board et on doit se déplacer sur le monde 
-										board[positionActuelle.getRow()][positionActuelle.getCol()].setContent(Cell.Empty);
-										estMonde=true;
-										boardSauv=board;
-										board=monde.getMatrice();
-										colNb=rowNb=board.length;
-										positionActuelle=p;
-									    board[p.getRow()][p.getCol()].setContent(Cell.Me);
-									}
-								}else {// cas on est dans un monde et si on sorte du monde
-									
-										if (positionActuelle.getRow()==rowNb-1 && positionMonde.getRow()<rowNb-1) {
-											//donc on peut sortir du monde 
-											if(board[positionMonde.getRow()+1][positionMonde.getCol()].getContent().equals(Cell.Empty)) {
-												positionActuelle.setCol(positionMonde.getCol());
-												positionActuelle.setRow(positionMonde.getRow()+1);
-											}
-											else {//on bouge le monde comme une boite
-												//on modifie sa position dans la liste des mondes 
-												Position posMonde=positionMonde;
-												board[positionMonde.getRow()][positionMonde.getCol()].setContent(Cell.Box);
-												deplacerDOWN();
-												if(!posMonde.equals(new Position(posMonde.getRow()+1,posMonde.getCol()))) {
-												board[positionMonde.getRow()+1][positionMonde.getCol()].setContent(Cell.World);
-												//MAJ de la liste des world 
-												Monde m= lesMondes.get(posMonde);
-												lesMondes.remove(positionMonde);
-												lesMondes.put(new Position(positionMonde.getRow()+1,positionMonde.getCol()), m);
-												}
-											}
-										}
-									
-								}
-							}
-						}
-					}
-				} 
-			}	
-		}
-		else {
-			//cas pour sortir d un monde
-			if(positionActuelle.getRow()==board.length-1) {
-				if(boardSauv[positionMonde.getRow()+1][positionMonde.getCol()].getContent().equals(Cell.Empty) || boardSauv[positionMonde.getRow()+1][positionMonde.getCol()].getContent().equals(Cell.Target) ){
-					board[positionActuelle.getRow()][positionActuelle.getCol()].setContent(Cell.Empty);
-					positionActuelle.setCol(positionMonde.getCol());
-					positionActuelle.setRow(positionMonde.getRow()+1);
-					board=boardSauv;
-					colNb=rowNb=board.length;
-					board[positionActuelle.getRow()][positionActuelle.getCol()].setContent(Cell.Me);
-				}
-				else if(boardSauv[positionMonde.getRow()+1][positionMonde.getCol()].getContent().equals(Cell.Box) && boardSauv[positionMonde.getRow()+2][positionMonde.getCol()].getContent().equals(Cell.Empty) ) {
-					Position positionBoite = new Position(positionMonde.getRow()+1,positionMonde.getCol());
-					board[positionActuelle.getRow()][positionActuelle.getCol()].setContent(Cell.Empty);
-					positionBoite.printPosition();
-					boardSauv[positionMonde.getRow()+1][positionMonde.getCol()].setContent(Cell.Me);
-					boardSauv[positionMonde.getRow()+2][positionMonde.getCol()].setContent(Cell.Box);
-					positionActuelle.setRow(positionMonde.getRow()+1);
-					board=boardSauv;
-					colNb=rowNb=board.length;
-							//n oublie pas de modifier la liste des boites
-					int i=getIndex(boxes,positionBoite);
-					boxes.get(i).setRow(positionBoite.getRow()+1);
-					boxes.get(i).setCol(positionMonde.getCol());
-				}
-			}	
-			else {
-			estMonde=false;
-			deplacerDOWN();
-			estMonde=true;
-			}
-		}
-	}
-	
-	
-	
-	
-	void deplacerRIGHT() { 
-		if (positionActuelle.getCol()== colNb-1 && !estMonde) return ; 
-		if( positionActuelle.getCol() < colNb-1) {// c-a-d on est dans la matrice
+		//this.afficherBoxes();
+		//if (positionActuelle.getRow()==0 && !estMonde) return ; //on est à la premiere ligne
+		if( positionActuelle.getCol()<colNb-1) {// c-a-d on est dans la matrice
 		// permier cas : un vide en dessus
 			if(board[positionActuelle.getRow()][positionActuelle.getCol()+1].getContent().equals(Cell.Empty)&& board[positionActuelle.getRow()][positionActuelle.getCol()].getContent().equals(Cell.Me)) {
 				board[positionActuelle.getRow()][positionActuelle.getCol()].setContent(Cell.Empty);
@@ -1270,10 +1320,101 @@ public class Niveau  {
 						//vérifier s'il y en a des boîtes en haut et puis faire le déplacement à la fois
 						//on utilisera une boucle qui cherche sk y en a des boîtes et sk on est arrivé au mur ou si on est sur la bordure
 						// et si on pousse une boite qui se trouve sa cible ?
-					if(boardSauv!=null)    if( board.length!=boardSauv.length && positionActuelle.getCol()+2==colNb && board[positionActuelle.getRow()][positionActuelle.getCol()+1].getContent().equals(Cell.Box) && boardSauv[positionMonde.getRow()][positionMonde.getCol()+1].getContent().equals(Cell.Empty)  ) {
+					 // System.out.println("hdgfhkdgfhqsgfkjf");
+						//aff_mat(boardSauv,boardSauv.length);
+						if( boardSauv==null) {if( positionActuelle.getCol()<colNb-1) {
+							// permier cas : un vide en dessus
+							if(board[positionActuelle.getRow()][positionActuelle.getCol()+1].getContent().equals(Cell.Empty)&& board[positionActuelle.getRow()][positionActuelle.getCol()].getContent().equals(Cell.Me)) {
+								board[positionActuelle.getRow()][positionActuelle.getCol()].setContent(Cell.Empty);
+								positionActuelle.setCol(positionActuelle.getCol()+1);
+								board[positionActuelle.getRow()][positionActuelle.getCol()].setContent(Cell.Me);
+							}
+							else  {
+								if (board[positionActuelle.getRow()][positionActuelle.getCol()+1].getContent().equals(Cell.Wall)) return ;
+								else {
+									if (board[positionActuelle.getRow()][positionActuelle.getCol()+1].getContent().equals(Cell.Box)) {//Faut traiter le cas d'une liste de boîtes
+										//vérifier s'il y en a des boîtes en haut et puis faire le déplacement à la fois
+										//on utilisera une boucle qui cherche sk y en a des boîtes et sk on est arrivé au mur ou si on est sur la bordure
+										int colonne=positionActuelle.getCol()+1;
+										ArrayList<Position> contBoites=new  ArrayList<Position>();
+										while (colonne<colNb-1) {
+											if(board[positionActuelle.getRow()][colonne].getContent().equals(Cell.Box)) {
+												//on peut créer une nouvelle liste qui comporte ces boîtes et qu'on modifiera
+												//soit on ajoute a la liste au meme temps ou bien on ajoute a la fin
+												System.out.println("avant"+contBoites.size());
+							 					contBoites.add(new Position(positionActuelle.getRow(),colonne));
+												System.out.println("apres"+contBoites.size());
+												System.out.println(+contBoites.get(0).getRow());
+												System.out.println(+contBoites.get(0).getCol());
+												colonne++;
+											}
+											if(board[positionActuelle.getRow()][colonne].getContent().equals(Cell.Empty)) {
+												//on fait le déplacement de tous les boîtes
+												//on revient a la position actuelle et on change les modifications 
+												board[positionActuelle.getRow()][positionActuelle.getCol()].setContent(Cell.Empty);
+												board[positionActuelle.getRow()][positionActuelle.getCol()+1].setContent(Cell.Me);
+												board[positionActuelle.getRow()][colonne].setContent(Cell.Box);
+												//on doit faire les changement dans la liste des boîtes
+												     
+												  
+												    int indicePrm = boxes.indexOf(contBoites.get(0));
+								
+												    boxes.set(indicePrm, new Position(positionActuelle.getRow(), colonne));
+												    System.out.println("right"+boxes.size());
+												    for(Position p :boxes){
+												    	System.out.println(+p.getRow());
+												    	System.out.println(+p.getCol());
+												    	System.out.println("---");
+												    	
+												    }
+								                    contBoites.remove(0);
+												    positionActuelle.setCol(positionActuelle.getCol() + 1);
+												   
+												return;
+											}if(board[positionActuelle.getRow()][colonne].getContent().equals(Cell.Wall)) return;
+										}
+										if((positionActuelle.getCol()+2)<colNb ) {
+											if(board[positionActuelle.getRow()][positionActuelle.getCol()+2].getContent().equals(Cell.Empty)) {
+												board[positionActuelle.getRow()][positionActuelle.getCol()].setContent(Cell.Empty);
+												board[positionActuelle.getRow()][positionActuelle.getCol()+1].setContent(Cell.Me);
+												board[positionActuelle.getRow()][positionActuelle.getCol()+1].setContent(Cell.Box);
+												positionActuelle.setCol(positionActuelle.getCol()+1);
+											}//les autres cas on ne fait rien 	
+											if ( (positionActuelle.getCol()+2)<colNb)
+												if(board[positionActuelle.getRow()][positionActuelle.getCol()+2].getContent().equals(Cell.Target)) {
+													board[positionActuelle.getRow()][positionActuelle.getCol()].setContent(Cell.Empty);
+													board[positionActuelle.getRow()][positionActuelle.getCol()+1].setContent(Cell.Me);
+													board[positionActuelle.getRow()][positionActuelle.getCol()+2].setContent(Cell.BoxOnTarget);
+													positionActuelle.setCol(positionActuelle.getCol()+1);
+												}
+										}
+										
+									}
+									else {
+										//if(board[positionActuelle.getRow()-1][positionActuelle.getCol()].getContent().equals(Cell.Target)) {
+										if(board[positionActuelle.getRow()][positionActuelle.getCol()+1].getContent().equals(Cell.Target)) {
+											board[positionActuelle.getRow()][positionActuelle.getCol()].setContent(Cell.Empty);
+											board[positionActuelle.getRow()][positionActuelle.getCol()+1].setContent(Cell.MeOnTarget);
+											positionActuelle.setCol(positionActuelle.getCol()+1);
+											
+										}else {
+											if(board[positionActuelle.getRow()][positionActuelle.getCol()].getContent().equals(Cell.MeOnTarget)) {
+												if(board[positionActuelle.getRow()][positionActuelle.getCol()+1].getContent().equals(Cell.Empty)) {
+													board[positionActuelle.getRow()][positionActuelle.getCol()+1].setContent(Cell.Me);
+													board[positionActuelle.getRow()][positionActuelle.getCol()].setContent(Cell.Target);
+													positionActuelle.setCol(positionActuelle.getCol()+1);
+												}
+											}
+										
+										}
+										
+									}
+								} 
+							}	
+						}}else 
+						if( /*board.length!=boardSauv.length &&*/ positionActuelle.getCol()+1==colNb-1 && board[positionActuelle.getRow()][positionActuelle.getCol()+1].getContent().equals(Cell.Box) && boardSauv[positionMonde.getRow()][positionMonde.getCol()+1].getContent().equals(Cell.Empty)  ) {
 							//on sort la boite du monde
-					    	
-							Position positionBoite= new Position(positionActuelle.getRow(),positionActuelle.getCol()+1);
+					    	Position positionBoite= new Position(positionActuelle.getRow(),positionActuelle.getCol()+1);
 							board[positionActuelle.getRow()][positionActuelle.getCol()].setContent(Cell.Empty);
 							positionActuelle.setCol(positionActuelle.getCol()+1);
 							board[positionActuelle.getRow()][positionActuelle.getCol()].setContent(Cell.Me);
@@ -1284,19 +1425,19 @@ public class Niveau  {
 						}
 					else {		//et le cas q"on on sort d'un monde et y a en dessus une boite après un vide donc on pourra pousser à partir du monde la boite
 						//je traite le cas d'une seule boite :
-						if(boardSauv[positionMonde.getRow()][positionMonde.getCol()+1].getContent().equals(Cell.Box) && boardSauv[positionMonde.getRow()][positionMonde.getCol()+2].getContent().equals(Cell.Empty)&& board.length==boardSauv.length ) {
+						if(boardSauv[positionMonde.getRow()][positionMonde.getCol()+1].getContent().equals(Cell.Box) && boardSauv[positionMonde.getRow()][positionMonde.getCol()+2].getContent().equals(Cell.Empty)&& board[0].length==boardSauv[0].length ) {
 							Position positionBoite= new Position(positionActuelle.getRow(),positionActuelle.getCol()+1);
 							board[positionActuelle.getRow()][positionActuelle.getCol()].setContent(Cell.Empty);
 							board[positionActuelle.getRow()][positionActuelle.getCol()+1].setContent(Cell.Me);
 							board[positionActuelle.getRow()][positionActuelle.getCol()+2].setContent(Cell.Box);
 							positionActuelle.setCol(positionActuelle.getCol()+1);
-									//n oublie pas de modifier la liste des boites
+							//n oublie pas de modifier la liste des boites
 							//on supprime de la liste des boites la boite avec l ancienne position pour la mettre a jour
 							int i=getIndex(boxes,positionBoite);
 							boxes.get(i).setRow(positionBoite.getRow());
 							boxes.get(i).setCol(positionMonde.getCol()+1);
 						}
-						else if(positionActuelle.getCol()==colNb-1 && boardSauv[positionMonde.getRow()][positionMonde.getCol()+1].getContent().equals(Cell.Box)&& boardSauv[positionMonde.getRow()][positionMonde.getCol()+2].getContent().equals(Cell.Empty)&& board.length!=boardSauv.length ) {
+						else if(positionActuelle.getCol()==colNb-1 && boardSauv[positionMonde.getRow()][positionMonde.getCol()+1].getContent().equals(Cell.Box)&& boardSauv[positionMonde.getRow()][positionMonde.getCol()+2].getContent().equals(Cell.Empty)&& board[0].length!=boardSauv[0].length ) {
 							Position positionBoite= new Position(positionMonde.getRow(),positionMonde.getCol()+1);
 							board[positionActuelle.getRow()][positionActuelle.getCol()].setContent(Cell.Empty);
 							boardSauv[positionMonde.getRow()][positionMonde.getCol()+1].setContent(Cell.Me);
@@ -1309,44 +1450,47 @@ public class Niveau  {
 							boxes.get(i).setCol(positionMonde.getCol()+1);
 						}
 						else {
-						int col=positionActuelle.getCol()+1;
-						
+						int colonne =positionActuelle.getRow()+1;
 						ArrayList<Position> contBoites=new  ArrayList<Position>();
-						while (col<board.length) {
-							//cas juste une seule boite!
-							if(board[positionActuelle.getRow()][col].getContent().equals(Cell.Box) /*|| board[ligne][positionActuelle.getCol()].getContent().equals(Cell.BoxOnTarget)*/) {
+						while (colonne<colNb-1) {//cas juste une seule boite!
+							if(board[positionActuelle.getRow()][colonne].getContent().equals(Cell.Box) /*|| board[ligne][positionActuelle.getCol()].getContent().equals(Cell.BoxOnTarget)*/) {
 								//on peut créer une nouvelle liste qui comporte ces boîtes et qu'on modifiera
 								//soit on ajoute a la liste au meme temps ou bien on ajoute a la fin
-								
-							contBoites.add(new Position(positionActuelle.getRow(),col));
-							col++;
+							contBoites.add(new Position(positionActuelle.getRow(),colonne));
+								colonne++;
 								}
 							//traitement premiere boite et derniere boite sue une cible
-							if(board[positionActuelle.getRow()][col].getContent().equals(Cell.Empty)) {
+							if(board[positionActuelle.getRow()][colonne].getContent().equals(Cell.Empty)) {
 								//on fait le déplacement de tous les boîtes
 								//on revient a la position actuelle et on change les modifications 
 								board[positionActuelle.getRow()][positionActuelle.getCol()+1].setContent(Cell.Me);
-								board[positionActuelle.getRow()][col].setContent(Cell.Box);
+								board[positionActuelle.getRow()][colonne].setContent(Cell.Box);
 								//on doit faire les changement dans la liste des boîtes
 								int indicePrm = boxes.indexOf(contBoites.get(0));
-								boxes.set(indicePrm,new Position(positionActuelle.getRow(),col));
+								//CA MARCHEEEEEEEEEE!!!!!!!!!
+								boxes.set(indicePrm,new Position(positionActuelle.getRow(),colonne));
 								if(board[positionActuelle.getRow()][positionActuelle.getCol()].getContent().equals(Cell.MeOnTarget)) {
 									board[positionActuelle.getRow()][positionActuelle.getCol()].setContent(Cell.Target);
+									//le cas si on est sur cible et on la quitte 
 								}
 								else board[positionActuelle.getRow()][positionActuelle.getCol()].setContent(Cell.Empty);
 								positionActuelle.setCol(positionActuelle.getCol()+1);
+								//on traite le cas une boîte sur la cible 
+								//ATTENTION on doit modifie
+								//on arrête de chercher d autres boîtes
+								//et on sort de la méthode 
 								return;
 							}
 							else {
-								if(board[positionActuelle.getRow()][col].getContent().equals(Cell.Target)) {
+								if(board[positionActuelle.getRow()][colonne].getContent().equals(Cell.Target)) {
 									//on traite le cas une cible est en haut 
-									board[positionActuelle.getRow()][col].setContent(Cell.BoxOnTarget);// WORKS !!!
+									board[positionActuelle.getRow()][colonne].setContent(Cell.BoxOnTarget);// WORKS !!!
 								}
 							}
 							//si c est un mur on arrête de chercher
 							//on sort carrément de la méthode 
-							if(board[positionActuelle.getRow()][col].getContent().equals(Cell.Wall)) return;
-						}
+							if(board[positionActuelle.getRow()][colonne].getContent().equals(Cell.Wall)) return;					
+							}
 						if((positionActuelle.getCol()+2)<colNb ) { 
 							if(board[positionActuelle.getRow()][positionActuelle.getCol()+2].getContent().equals(Cell.Empty)) {
 								board[positionActuelle.getRow()][positionActuelle.getCol()].setContent(Cell.Empty);
@@ -1354,7 +1498,7 @@ public class Niveau  {
 								board[positionActuelle.getRow()][positionActuelle.getCol()+2].setContent(Cell.Box);
 								positionActuelle.setCol(positionActuelle.getCol()+1);
 							}//les autres cas on ne fait rien 	
-							if ( (positionActuelle.getCol()+2)>colNb)
+							if ( (positionActuelle.getCol()+2)<colNb)
 								if(board[positionActuelle.getRow()][positionActuelle.getCol()+2].getContent().equals(Cell.Target)) {
 									board[positionActuelle.getRow()][positionActuelle.getCol()].setContent(Cell.Empty);
 									board[positionActuelle.getRow()][positionActuelle.getCol()+1].setContent(Cell.Me);
@@ -1378,30 +1522,30 @@ public class Niveau  {
 									positionActuelle.setCol(positionActuelle.getCol()+1);
 								}
 							}
-							else {
+							else {//on fera juste un monde au plus ALLAH GHALEB on n'a ni le temps ni les compétences pour faire plus
 								if(board[positionActuelle.getRow()][positionActuelle.getCol()+1].getContent().equals(Cell.World)) {
 									///on recherche une porte si on peut entrer 
 									//dans la bordure en dessous
 									positionMonde=new Position(positionActuelle.getRow(),positionActuelle.getCol()+1);
 									Monde monde= lesMondes.get(new Position(positionActuelle.getRow(),positionActuelle.getCol()+1));
 									Position p;
-									if ( (p=trouverPorte(monde,1)) != null  ) {//on a trouvé une porte et on peut y accéder
+									if ( (p=trouverPorte(monde,colNb-1)) != null  ) {//on a trouvé une porte et on peut y accéder
 										//on doit sauvegarder la position sur le board et on doit se déplacer sur le monde 
 										board[positionActuelle.getRow()][positionActuelle.getCol()].setContent(Cell.Empty);
 										estMonde=true;
 										boardSauv=board;
 										board=monde.getMatrice();
-										colNb=rowNb=board.length;
+										colNb=rowNb=board[0].length;
 										positionActuelle=p;
 									    board[p.getRow()][p.getCol()].setContent(Cell.Me);
 									}
 								}else {// cas on est dans un monde et si on sorte du monde
 									if( estMonde) {
-										if (positionActuelle.getCol()==colNb-1 && positionMonde.getRow()<boardSauv.length-1) {
+										if (positionActuelle.getCol()==colNb-1 && positionMonde.getCol()<colNb-1) {
 											//donc on peut sortir du monde 
 											if(board[positionMonde.getRow()][positionMonde.getCol()+1].getContent().equals(Cell.Empty)) {
-												positionActuelle.setCol(positionMonde.getCol());
 												positionActuelle.setCol(positionMonde.getCol()+1);
+												positionActuelle.setRow(positionMonde.getRow());
 											}
 											else {//on bouge le monde comme une boite
 												//on modifie sa position dans la liste des mondes 
@@ -1433,21 +1577,22 @@ public class Niveau  {
 					positionActuelle.setCol(positionMonde.getCol()+1);
 					positionActuelle.setRow(positionMonde.getRow());
 					board=boardSauv;
-					colNb=rowNb=board.length;
+					colNb=rowNb=board[0].length;
 					board[positionActuelle.getRow()][positionActuelle.getCol()].setContent(Cell.Me);
 				}
 				else if(boardSauv[positionMonde.getRow()][positionMonde.getCol()+1].getContent().equals(Cell.Box) && boardSauv[positionMonde.getRow()][positionMonde.getCol()+2].getContent().equals(Cell.Empty) ) {
-					Position positionBoite = new Position(positionMonde.getRow(),positionMonde.getCol()+1);
+					Position positionBoite = new Position(positionMonde.getRow(),positionMonde.getCol()+2);
 					board[positionActuelle.getRow()][positionActuelle.getCol()].setContent(Cell.Empty);
+					positionBoite.printPosition();
 					boardSauv[positionMonde.getRow()][positionMonde.getCol()+1].setContent(Cell.Me);
 					boardSauv[positionMonde.getRow()][positionMonde.getCol()+2].setContent(Cell.Box);
 					positionActuelle.setCol(positionMonde.getCol()+1);
 					board=boardSauv;
-					colNb=rowNb=board.length;
+					colNb=rowNb=board[0].length;
 							//n oublie pas de modifier la liste des boites
 					int i=getIndex(boxes,positionBoite);
 					boxes.get(i).setRow(positionBoite.getRow());
-					boxes.get(i).setCol(positionBoite.getCol()+1);
+					boxes.get(i).setCol(positionMonde.getCol()+1);
 				}
 			}	
 			else {
@@ -1456,223 +1601,13 @@ public class Niveau  {
 			estMonde=true;
 			}
 		}
+		if(iswon()) {
+        	System.out.println("BRAVO");
+        }
+		derniereAction=4;
 	}
 	
-	void deplacerLEFT() { 
-		if (positionActuelle.getCol()== 0 && !estMonde) return ; 
-		if( positionActuelle.getCol() > 0) {// c-a-d on est dans la matrice
-		// permier cas : un vide en dessus
-			if(board[positionActuelle.getRow()][positionActuelle.getCol()-1].getContent().equals(Cell.Empty)&& board[positionActuelle.getRow()][positionActuelle.getCol()].getContent().equals(Cell.Me)) {
-				board[positionActuelle.getRow()][positionActuelle.getCol()].setContent(Cell.Empty);
-				positionActuelle.setCol(positionActuelle.getCol()-1);
-				board[positionActuelle.getRow()][positionActuelle.getCol()].setContent(Cell.Me);
-			}
-			else  {
-				if (board[positionActuelle.getRow()][positionActuelle.getCol()-1].getContent().equals(Cell.Wall)) return ;//si c un mur on ne faot rien
-				else {
-					if (board[positionActuelle.getRow()][positionActuelle.getCol()-1].getContent().equals(Cell.Box) || board[positionActuelle.getRow()][positionActuelle.getCol()-1].getContent().equals(Cell.BoxOnTarget) ) {//Faut traiter le cas d'une liste de boîtes
-						//vérifier s'il y en a des boîtes en haut et puis faire le déplacement à la fois
-						//on utilisera une boucle qui cherche sk y en a des boîtes et sk on est arrivé au mur ou si on est sur la bordure
-						// et si on pousse une boite qui se trouve sa cible ?
-						
-						
-						
-						
-					    if( board.length!=boardSauv.length && positionActuelle.getCol()-2==0 && board[positionActuelle.getRow()][positionActuelle.getCol()-1].getContent().equals(Cell.Box) && boardSauv[positionMonde.getRow()][positionMonde.getCol()-2].getContent().equals(Cell.Empty)  ) {
-							//on sort la boite du monde
-							/*
-							if(board[positionActuelle.getRow()][positionActuelle.getCol()-2].getContent().equals(Cell.Empty)){
-								boardSauv[positionMonde.getRow()][positionMonde.getCol()-2].setContent(Cell.Box);
-
-							}*/
-							Position positionBoite= new Position(positionActuelle.getRow(),positionActuelle.getCol()-1);
-							board[positionActuelle.getRow()][positionActuelle.getCol()].setContent(Cell.Empty);
-							positionActuelle.setCol(positionActuelle.getCol()-1);
-							board[positionActuelle.getRow()][positionActuelle.getCol()].setContent(Cell.Me);
-							boardSauv[positionMonde.getRow()][positionMonde.getCol()-1].setContent(Cell.Box);
-							
-							int i=getIndex(boxes,positionBoite);
-							boxes.get(i).setRow(positionMonde.getRow());
-							boxes.get(i).setCol(positionMonde.getCol()-1);
-						}
-					else {		//et le cas q"on on sort d'un monde et y a en dessus une boite après un vide donc on pourra pousser à partir du monde la boite
-						//je traite le cas d'une seule boite :
-						if(boardSauv[positionMonde.getRow()][positionMonde.getCol()-1].getContent().equals(Cell.Box) && boardSauv[positionMonde.getRow()][positionMonde.getCol()-2].getContent().equals(Cell.Empty)&& board.length==boardSauv.length ) {
-							Position positionBoite= new Position(positionActuelle.getRow(),positionActuelle.getCol()-1);
-							board[positionActuelle.getRow()][positionActuelle.getCol()].setContent(Cell.Empty);
-							board[positionActuelle.getRow()][positionActuelle.getCol()-1].setContent(Cell.Me);
-							board[positionActuelle.getRow()][positionActuelle.getCol()-2].setContent(Cell.Box);
-							positionActuelle.setCol(positionActuelle.getCol()-1);
-									//n oublie pas de modifier la liste des boites
-							//on supprime de la liste des boites la boite avec l ancienne position pour la mettre a jour
-							int i=getIndex(boxes,positionBoite);
-							boxes.get(i).setRow(positionBoite.getRow());
-							boxes.get(i).setCol(positionMonde.getCol()-1);
-						}
-						else if(positionActuelle.getCol()==0 && boardSauv[positionMonde.getRow()][positionMonde.getCol()-1].getContent().equals(Cell.Box)&& boardSauv[positionMonde.getRow()][positionMonde.getCol()-2].getContent().equals(Cell.Empty)&& board.length!=boardSauv.length ) {
-							Position positionBoite= new Position(positionMonde.getRow(),positionMonde.getCol()-1);
-							board[positionActuelle.getRow()][positionActuelle.getCol()].setContent(Cell.Empty);
-							boardSauv[positionMonde.getRow()][positionMonde.getCol()-1].setContent(Cell.Me);
-							boardSauv[positionMonde.getRow()][positionMonde.getCol()-2].setContent(Cell.Box);
-							positionActuelle.setRow(positionMonde.getRow());
-							positionActuelle.setCol(positionMonde.getCol()-1);
-							board=boardSauv;
-							int i=getIndex(boxes,positionBoite);							
-							boxes.get(i).setRow(positionBoite.getRow());
-							boxes.get(i).setCol(positionMonde.getCol()-1);
-
-						}
-						else {
-						int col=positionActuelle.getCol()-1;
-						ArrayList<Position> contBoites=new  ArrayList<Position>();
-						while (col>0) {
-							System.out.println("****************************************************************************************");
-							//cas juste une seule boite!
-							if(board[positionActuelle.getRow()][col].getContent().equals(Cell.Box) /*|| board[ligne][positionActuelle.getCol()].getContent().equals(Cell.BoxOnTarget)*/) {
-								//on peut créer une nouvelle liste qui comporte ces boîtes et qu'on modifiera
-								//soit on ajoute a la liste au meme temps ou bien on ajoute a la fin
-								
-							contBoites.add(new Position(positionActuelle.getRow(),col));
-							col--;
-								}
-							
-							//traitement premiere boite et derniere boite sue une cible
-							System.out.println("==================================================================================col="+col);
-							if(board[positionActuelle.getRow()][col].getContent().equals(Cell.Empty)) {
-								//on fait le déplacement de tous les boîtes
-								//on revient a la position actuelle et on change les modifications 
-								board[positionActuelle.getRow()][positionActuelle.getCol()-1].setContent(Cell.Me);
-								board[positionActuelle.getRow()][col].setContent(Cell.Box);
-								//on doit faire les changement dans la liste des boîtes
-								int indicePrm = boxes.indexOf(contBoites.get(0));
-								boxes.set(indicePrm,new Position(positionActuelle.getRow(),col));
-								if(board[positionActuelle.getRow()][positionActuelle.getCol()].getContent().equals(Cell.MeOnTarget)) {
-									board[positionActuelle.getRow()][positionActuelle.getCol()].setContent(Cell.Target);
-								}
-								else board[positionActuelle.getRow()][positionActuelle.getCol()].setContent(Cell.Empty);
-								positionActuelle.setCol(positionActuelle.getCol()-1);
-								return;
-							}
-							else {
-								if(board[positionActuelle.getRow()][col].getContent().equals(Cell.Target)) {
-									//on traite le cas une cible est en haut 
-									board[positionActuelle.getRow()][col].setContent(Cell.BoxOnTarget);// WORKS !!!
-								}
-							}
-							//si c est un mur on arrête de chercher
-							//on sort carrément de la méthode 
-							if(board[positionActuelle.getRow()][col].getContent().equals(Cell.Wall)) return;
-						}
-						if((positionActuelle.getCol()-2)>=0 ) { 
-							if(board[positionActuelle.getRow()][positionActuelle.getCol()-2].getContent().equals(Cell.Empty)) {
-								board[positionActuelle.getRow()][positionActuelle.getCol()].setContent(Cell.Empty);
-								board[positionActuelle.getRow()][positionActuelle.getCol()-1].setContent(Cell.Me);
-								board[positionActuelle.getRow()][positionActuelle.getCol()-2].setContent(Cell.Box);
-								positionActuelle.setCol(positionActuelle.getCol()-1);
-							}//les autres cas on ne fait rien 	
-							if ( (positionActuelle.getCol()-2)>-1)
-								if(board[positionActuelle.getRow()][positionActuelle.getCol()-2].getContent().equals(Cell.Target)) {
-									board[positionActuelle.getRow()][positionActuelle.getCol()].setContent(Cell.Empty);
-									board[positionActuelle.getRow()][positionActuelle.getCol()-1].setContent(Cell.Me);
-									board[positionActuelle.getRow()][positionActuelle.getCol()-2].setContent(Cell.BoxOnTarget);
-									positionActuelle.setCol(positionActuelle.getCol()-1);
-								}
-						}
-					}
-					}	
-					}
-					else {
-						if(board[positionActuelle.getRow()][positionActuelle.getCol()-1].getContent().equals(Cell.Target)) {
-							board[positionActuelle.getRow()][positionActuelle.getCol()].setContent(Cell.Empty);
-							board[positionActuelle.getRow()][positionActuelle.getCol()-1].setContent(Cell.MeOnTarget);
-							positionActuelle.setCol(positionActuelle.getCol()-1);
-						}else {
-							if(board[positionActuelle.getRow()][positionActuelle.getCol()].getContent().equals(Cell.MeOnTarget)) {
-								if(board[positionActuelle.getRow()][positionActuelle.getCol()-1].getContent().equals(Cell.Empty)) {
-									board[positionActuelle.getRow()][positionActuelle.getCol()-1].setContent(Cell.Me);
-									board[positionActuelle.getRow()][positionActuelle.getCol()].setContent(Cell.Target);
-									positionActuelle.setCol(positionActuelle.getCol()-1);
-								}
-							}
-							else {
-								if(board[positionActuelle.getRow()][positionActuelle.getCol()-1].getContent().equals(Cell.World)) {
-									///on recherche une porte si on peut entrer 
-									//dans la bordure en dessous
-									positionMonde=new Position(positionActuelle.getRow(),positionActuelle.getCol()-1);
-									Monde monde= lesMondes.get(new Position(positionActuelle.getRow(),positionActuelle.getCol()-1));
-									Position p;
-									if ( (p=trouverPorte(monde,2)) != null  ) {//on a trouvé une porte et on peut y accéder
-										//on doit sauvegarder la position sur le board et on doit se déplacer sur le monde 
-										board[positionActuelle.getRow()][positionActuelle.getCol()].setContent(Cell.Empty);
-										estMonde=true;
-										boardSauv=board;
-										board=monde.getMatrice();
-										colNb=rowNb=board.length;
-										positionActuelle=p;
-									    board[p.getRow()][p.getCol()].setContent(Cell.Me);
-									}
-								}else {// cas on est dans un monde et si on sorte du monde
-									if( estMonde) {
-										if (positionActuelle.getCol()==0 && positionMonde.getRow()>0) {////DDDDDDDDDDDDDDDDDDDDDOOOOOOOOOOOUUUUUUUUUUUUUUUUUUUTTTTTTTTTTTTTEEEEEEEEEEEE
-											//donc on peut sortir du monde 
-											if(board[positionMonde.getRow()][positionMonde.getCol()-1].getContent().equals(Cell.Empty)) {
-												positionActuelle.setCol(positionMonde.getCol());
-												positionActuelle.setCol(positionMonde.getCol()-1);
-											}
-											else {//on bouge le monde comme une boite
-												//on modifie sa position dans la liste des mondes 
-												Position posMonde=positionMonde;
-												board[positionMonde.getRow()][positionMonde.getCol()].setContent(Cell.Box);
-												deplacerLEFT();
-												if(!posMonde.equals(new Position(posMonde.getRow(),posMonde.getCol()-1))) {
-												board[positionMonde.getRow()][positionMonde.getCol()-1].setContent(Cell.World);
-												//MAJ de la liste des world 
-												Monde m= lesMondes.get(posMonde);
-												lesMondes.remove(positionMonde);
-												lesMondes.put(new Position(positionMonde.getRow(),positionMonde.getCol()-1), m);
-												}
-											}
-										}
-									}
-								}
-							}
-						}
-					}
-				} 
-			}	
-		}
-		else {
-			//cas pour sortir d un monde
-			if(positionActuelle.getCol()==0) {
-				if(boardSauv[positionMonde.getRow()][positionMonde.getCol()-1].getContent().equals(Cell.Empty) || boardSauv[positionMonde.getRow()][positionMonde.getCol()].getContent().equals(Cell.Target) ){
-					board[positionActuelle.getRow()][positionActuelle.getCol()].setContent(Cell.Empty);
-					positionActuelle.setCol(positionMonde.getCol()-1);
-					positionActuelle.setRow(positionMonde.getRow());
-					board=boardSauv;
-					colNb=rowNb=board.length;
-					board[positionActuelle.getRow()][positionActuelle.getCol()].setContent(Cell.Me);
-				}
-				else if(boardSauv[positionMonde.getRow()][positionMonde.getCol()-1].getContent().equals(Cell.Box) && boardSauv[positionMonde.getRow()][positionMonde.getCol()-2].getContent().equals(Cell.Empty) ) {
-					Position positionBoite = new Position(positionMonde.getRow(),positionMonde.getCol()-1);
-					board[positionActuelle.getRow()][positionActuelle.getCol()].setContent(Cell.Empty);
-					boardSauv[positionMonde.getRow()][positionMonde.getCol()-1].setContent(Cell.Me);
-					boardSauv[positionMonde.getRow()][positionMonde.getCol()-2].setContent(Cell.Box);
-					positionActuelle.setCol(positionMonde.getCol()-1);
-					board=boardSauv;
-					colNb=rowNb=board.length;
-							//n oublie pas de modifier la liste des boites
-					int i=getIndex(boxes,positionBoite);
-					boxes.get(i).setRow(positionBoite.getRow());
-					boxes.get(i).setCol(positionBoite.getCol()-1);
-				}
-			}	
-			else {
-			estMonde=false;
-			deplacerLEFT();
-			estMonde=true;
-			}
-		}
-	}
+	
 	
 	
 	void deplacerRIGHTancien() { // it wprks fine but modify the others to resemble to this , its same just small details 
@@ -1734,25 +1669,6 @@ public class Niveau  {
 		
 		
 	}
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
 	
 	//////////
 	void deplacerDOWNancien() { 
@@ -1860,7 +1776,370 @@ public class Niveau  {
 				} 
 			}	
 		}
+		if(iswon()) {
+        	System.out.println("BRAVO");
+        }
+		derniereAction=4;
 	} 
+void deplacerLEFT() { 
+		
+		
+		
+		
+		if(positionActuelle.getCol()-2>0) {
+			if(board[positionActuelle.getRow()][positionActuelle.getCol()-1].getContent().equals(Cell.Box)&&board[positionActuelle.getRow()][positionActuelle.getCol()-2].getContent().equals(Cell.Target)) {
+				board[positionActuelle.getRow()][positionActuelle.getCol()].setContent(Cell.Empty);
+				board[positionActuelle.getRow()][positionActuelle.getCol()-1].setContent(Cell.Me);
+				board[positionActuelle.getRow()][positionActuelle.getCol()-2].setContent(Cell.BoxOnTarget);
+				positionActuelle.setCol(positionActuelle.getCol()-1);
+			}
+		}
+		
+		if(board[positionActuelle.getRow()][positionActuelle.getCol()-1].getContent().equals(Cell.World) ) {
+				
+				if(positionActuelle.getCol()-2>=0) {
+					
+					if(board[positionActuelle.getRow()][positionActuelle.getCol()-2].getContent().equals(Cell.Empty)) {
+						Position p=new Position(positionActuelle.getRow(),positionActuelle.getCol()-1);
+				Monde m=rechMonde(p,lesMondes);
+				lesMondes.remove(p, m);
+				p.setCol(p.getCol()-1);
+				lesMondes.put(p, m);
+				board[positionActuelle.getRow()][positionActuelle.getCol()].setContent(Cell.Empty);
+				board[positionActuelle.getRow()][positionActuelle.getCol()-2].setContent(Cell.World);
+				board[positionActuelle.getRow()][positionActuelle.getCol()-1].setContent(Cell.Me);
+				positionActuelle.setCol(positionActuelle.getCol()-1);
+					}
+					
+					
+					
+					
+				}
+			 
+				if(positionActuelle.getCol()-1==0) {//on entre le monde
+					positionMonde=new Position(positionActuelle.getRow(),positionActuelle.getCol()-1);
+					Monde monde= lesMondes.get(new Position(positionActuelle.getRow(),positionActuelle.getCol()-1));
+					Position p;
+					if ( (p=trouverPorte(monde,0)) != null  ) {//on a trouvé une porte et on peut y accéder
+						//on doit sauvegarder la position sur le board et on doit se déplacer sur le monde 
+						board[positionActuelle.getRow()][positionActuelle.getCol()].setContent(Cell.Empty);
+						estMonde=true;
+						boardSauv=board;
+						board=monde.getMatrice();
+						colNb=rowNb=board.length;
+						positionActuelle=p;
+					    board[p.getRow()][p.getCol()].setContent(Cell.Me);
+				}
+				}
+				else if (positionActuelle.getCol()-2==0 && board[positionActuelle.getRow()][positionActuelle.getCol()-2].getContent().equals(Cell.Wall) ) {
+					positionMonde=new Position(positionActuelle.getRow(),positionActuelle.getCol()-1);
+					Monde monde= lesMondes.get(new Position(positionActuelle.getRow(),positionActuelle.getCol()-1));
+					Position p;
+					if ( (p=trouverPorte(monde,0)) != null  ) {//on a trouvé une porte et on peut y accéder
+						//on doit sauvegarder la position sur le board et on doit se déplacer sur le monde 
+						board[positionActuelle.getRow()][positionActuelle.getCol()].setContent(Cell.Empty);
+						estMonde=true;
+						boardSauv=board;
+						board=monde.getMatrice();
+						colNb=rowNb=board.length;
+						positionActuelle=p;
+					    board[p.getRow()][p.getCol()].setContent(Cell.Me);
+					
+				}}
+				
+				
+		}
+		
+		
+		
+		else
+		//this.afficherBoxes();
+		//if (positionActuelle.getRow()==0 && !estMonde) return ; //on est à la premiere ligne
+		if( positionActuelle.getCol()>0) {// c-a-d on est dans la matrice
+		// permier cas : un vide en dessus
+			if(board[positionActuelle.getRow()][positionActuelle.getCol()-1].getContent().equals(Cell.Empty)&& board[positionActuelle.getRow()][positionActuelle.getCol()].getContent().equals(Cell.Me)) {
+				board[positionActuelle.getRow()][positionActuelle.getCol()].setContent(Cell.Empty);
+				positionActuelle.setCol(positionActuelle.getCol()-1);
+				board[positionActuelle.getRow()][positionActuelle.getCol()].setContent(Cell.Me);
+			}
+			else  {
+				if (board[positionActuelle.getRow()][positionActuelle.getCol()-1].getContent().equals(Cell.Wall)) return ;//si c un mur on ne faot rien
+				else {
+					if (board[positionActuelle.getRow()][positionActuelle.getCol()-1].getContent().equals(Cell.Box) || board[positionActuelle.getRow()][positionActuelle.getCol()-1].getContent().equals(Cell.BoxOnTarget) ) {//Faut traiter le cas d'une liste de boîtes
+						//vérifier s'il y en a des boîtes en haut et puis faire le déplacement à la fois
+						//on utilisera une boucle qui cherche sk y en a des boîtes et sk on est arrivé au mur ou si on est sur la bordure
+						// et si on pousse une boite qui se trouve sa cible ?
+					 // System.out.println("hdgfhkdgfhqsgfkjf");
+						//aff_mat(boardSauv,boardSauv.length);
+						if( boardSauv==null) {if( positionActuelle.getCol()>0) {
+							// permier cas : un vide en dessus
+							if(board[positionActuelle.getRow()][positionActuelle.getCol()-1].getContent().equals(Cell.Empty)&& board[positionActuelle.getRow()][positionActuelle.getCol()].getContent().equals(Cell.Me)) {
+								board[positionActuelle.getRow()][positionActuelle.getCol()].setContent(Cell.Empty);
+								positionActuelle.setCol(positionActuelle.getCol()-1);
+								board[positionActuelle.getRow()][positionActuelle.getCol()].setContent(Cell.Me);
+							}
+							else  {
+								if (board[positionActuelle.getRow()][positionActuelle.getCol()-1].getContent().equals(Cell.Wall)) return ;
+								else {
+									if (board[positionActuelle.getRow()][positionActuelle.getCol()-1].getContent().equals(Cell.Box)) {//Faut traiter le cas d'une liste de boîtes
+										//vérifier s'il y en a des boîtes en haut et puis faire le déplacement à la fois
+										//on utilisera une boucle qui cherche sk y en a des boîtes et sk on est arrivé au mur ou si on est sur la bordure
+										int colonne=positionActuelle.getCol()-1;
+										ArrayList<Position> contBoites=new  ArrayList<Position>();
+										while (colonne>0) {
+											if(board[positionActuelle.getRow()][colonne].getContent().equals(Cell.Box)) {
+												//on peut créer une nouvelle liste qui comporte ces boîtes et qu'on modifiera
+												//soit on ajoute a la liste au meme temps ou bien on ajoute a la fin
+												contBoites.add(new Position(positionActuelle.getRow(),colonne));
+												colonne--;
+											}
+											if(board[positionActuelle.getRow()][colonne].getContent().equals(Cell.Empty)) {
+												//on fait le déplacement de tous les boîtes
+												//on revient a la position actuelle et on change les modifications 
+												board[positionActuelle.getRow()][positionActuelle.getCol()].setContent(Cell.Empty);
+												board[positionActuelle.getRow()][positionActuelle.getCol()-1].setContent(Cell.Me);
+												board[positionActuelle.getRow()][colonne].setContent(Cell.Box);
+												//on doit faire les changement dans la liste des boîtes
+												int indicePrm = boxes.indexOf(contBoites.get(0));
+												//CA MARCHEEEEEEEEEE!!!!!!!!!
+												boxes.set(indicePrm,new Position(positionActuelle.getRow(),colonne));
+												positionActuelle.setCol(positionActuelle.getCol()-1);
+												return;
+											}if(board[positionActuelle.getRow()][colonne].getContent().equals(Cell.Wall)) return;
+										}
+										if((positionActuelle.getCol()-2)>=0 ) {
+											if(board[positionActuelle.getRow()][positionActuelle.getCol()-2].getContent().equals(Cell.Empty)) {
+												board[positionActuelle.getRow()][positionActuelle.getCol()].setContent(Cell.Empty);
+												board[positionActuelle.getRow()][positionActuelle.getCol()-1].setContent(Cell.Me);
+												board[positionActuelle.getRow()][positionActuelle.getCol()-1].setContent(Cell.Box);
+												positionActuelle.setCol(positionActuelle.getCol()-1);
+											}//les autres cas on ne fait rien 	
+											if ( (positionActuelle.getCol()-2)>-1)
+												if(board[positionActuelle.getRow()][positionActuelle.getCol()-2].getContent().equals(Cell.Target)) {
+													board[positionActuelle.getRow()][positionActuelle.getCol()].setContent(Cell.Empty);
+													board[positionActuelle.getRow()][positionActuelle.getCol()-1].setContent(Cell.Me);
+													board[positionActuelle.getRow()][positionActuelle.getCol()-2].setContent(Cell.BoxOnTarget);
+													positionActuelle.setCol(positionActuelle.getCol()-1);
+												}
+										}
+										
+									}
+									else {
+										//if(board[positionActuelle.getRow()-1][positionActuelle.getCol()].getContent().equals(Cell.Target)) {
+										if(board[positionActuelle.getRow()][positionActuelle.getCol()-1].getContent().equals(Cell.Target)) {
+											board[positionActuelle.getRow()][positionActuelle.getCol()].setContent(Cell.Empty);
+											board[positionActuelle.getRow()][positionActuelle.getCol()-1].setContent(Cell.MeOnTarget);
+											positionActuelle.setCol(positionActuelle.getCol()-1);
+											
+										}else {
+											if(board[positionActuelle.getRow()][positionActuelle.getCol()].getContent().equals(Cell.MeOnTarget)) {
+												if(board[positionActuelle.getRow()][positionActuelle.getCol()-1].getContent().equals(Cell.Empty)) {
+													board[positionActuelle.getRow()][positionActuelle.getCol()-1].setContent(Cell.Me);
+													board[positionActuelle.getRow()][positionActuelle.getCol()].setContent(Cell.Target);
+													positionActuelle.setCol(positionActuelle.getCol()-1);
+												}
+											}
+										
+										}
+										
+									}
+								} 
+							}	
+						}}else 
+						if( /*board.length!=boardSauv.length &&*/ positionActuelle.getCol()-1==0 && board[positionActuelle.getRow()][positionActuelle.getCol()-1].getContent().equals(Cell.Box) && boardSauv[positionMonde.getRow()][positionMonde.getCol()-1].getContent().equals(Cell.Empty)  ) {
+							//on sort la boite du monde
+					    	Position positionBoite= new Position(positionActuelle.getRow(),positionActuelle.getCol()-1);
+							board[positionActuelle.getRow()][positionActuelle.getCol()].setContent(Cell.Empty);
+							positionActuelle.setCol(positionActuelle.getCol()-1);
+							board[positionActuelle.getRow()][positionActuelle.getCol()].setContent(Cell.Me);
+							boardSauv[positionMonde.getRow()][positionMonde.getCol()-1].setContent(Cell.Box);
+							int i=getIndex(boxes,positionBoite);
+							boxes.get(i).setRow(positionMonde.getRow());
+							boxes.get(i).setCol(positionMonde.getCol()-1);
+						}
+					else {		//et le cas q"on on sort d'un monde et y a en dessus une boite après un vide donc on pourra pousser à partir du monde la boite
+						//je traite le cas d'une seule boite :
+						if(boardSauv[positionMonde.getRow()][positionMonde.getCol()-1].getContent().equals(Cell.Box) && boardSauv[positionMonde.getRow()][positionMonde.getCol()-2].getContent().equals(Cell.Empty)&& board[0].length==boardSauv[0].length ) {
+							Position positionBoite= new Position(positionActuelle.getRow(),positionActuelle.getCol()-1);
+							board[positionActuelle.getRow()][positionActuelle.getCol()].setContent(Cell.Empty);
+							board[positionActuelle.getRow()][positionActuelle.getCol()-1].setContent(Cell.Me);
+							board[positionActuelle.getRow()][positionActuelle.getCol()-2].setContent(Cell.Box);
+							positionActuelle.setCol(positionActuelle.getCol()-1);
+							//n oublie pas de modifier la liste des boites
+							//on supprime de la liste des boites la boite avec l ancienne position pour la mettre a jour
+							int i=getIndex(boxes,positionBoite);
+							boxes.get(i).setRow(positionBoite.getRow());
+							boxes.get(i).setCol(positionMonde.getCol()-1);
+						}
+						else if(positionActuelle.getCol()==0 && boardSauv[positionMonde.getRow()][positionMonde.getCol()-1].getContent().equals(Cell.Box)&& boardSauv[positionMonde.getRow()][positionMonde.getCol()-2].getContent().equals(Cell.Empty)&& board[0].length!=boardSauv[0].length ) {
+							Position positionBoite= new Position(positionMonde.getRow(),positionMonde.getCol()-1);
+							board[positionActuelle.getRow()][positionActuelle.getCol()].setContent(Cell.Empty);
+							boardSauv[positionMonde.getRow()][positionMonde.getCol()-1].setContent(Cell.Me);
+							boardSauv[positionMonde.getRow()][positionMonde.getCol()-2].setContent(Cell.Box);
+							positionActuelle.setRow(positionMonde.getRow());
+							positionActuelle.setCol(positionMonde.getCol()-1);
+							board=boardSauv;
+							int i=getIndex(boxes,positionBoite);							
+							boxes.get(i).setRow(positionBoite.getRow());
+							boxes.get(i).setCol(positionMonde.getCol()-1);
+						}
+						else {
+						int colonne =positionActuelle.getRow()-1;
+						ArrayList<Position> contBoites=new  ArrayList<Position>();
+						while (colonne>0) {//cas juste une seule boite!
+							if(board[positionActuelle.getRow()][colonne].getContent().equals(Cell.Box) /*|| board[ligne][positionActuelle.getCol()].getContent().equals(Cell.BoxOnTarget)*/) {
+								//on peut créer une nouvelle liste qui comporte ces boîtes et qu'on modifiera
+								//soit on ajoute a la liste au meme temps ou bien on ajoute a la fin
+							contBoites.add(new Position(positionActuelle.getRow(),colonne));
+								colonne--;
+								}
+							//traitement premiere boite et derniere boite sue une cible
+							if(board[positionActuelle.getRow()][colonne].getContent().equals(Cell.Empty)) {
+								//on fait le déplacement de tous les boîtes
+								//on revient a la position actuelle et on change les modifications 
+								board[positionActuelle.getRow()][positionActuelle.getCol()-1].setContent(Cell.Me);
+								board[positionActuelle.getRow()][colonne].setContent(Cell.Box);
+								//on doit faire les changement dans la liste des boîtes
+								int indicePrm = boxes.indexOf(contBoites.get(0));
+								//CA MARCHEEEEEEEEEE!!!!!!!!!
+								boxes.set(indicePrm,new Position(positionActuelle.getRow(),colonne));
+								if(board[positionActuelle.getRow()][positionActuelle.getCol()].getContent().equals(Cell.MeOnTarget)) {
+									board[positionActuelle.getRow()][positionActuelle.getCol()].setContent(Cell.Target);
+									//le cas si on est sur cible et on la quitte 
+								}
+								else board[positionActuelle.getRow()][positionActuelle.getCol()].setContent(Cell.Empty);
+								positionActuelle.setCol(positionActuelle.getCol()-1);
+								//on traite le cas une boîte sur la cible 
+								//ATTENTION on doit modifie
+								//on arrête de chercher d autres boîtes
+								//et on sort de la méthode 
+								return;
+							}
+							else {
+								if(board[positionActuelle.getRow()][colonne].getContent().equals(Cell.Target)) {
+									//on traite le cas une cible est en haut 
+									board[positionActuelle.getRow()][colonne].setContent(Cell.BoxOnTarget);// WORKS !!!
+								}
+							}
+							//si c est un mur on arrête de chercher
+							//on sort carrément de la méthode 
+							if(board[positionActuelle.getRow()][colonne].getContent().equals(Cell.Wall)) return;
+						}
+						if((positionActuelle.getCol()-2)>=0 ) { 
+							if(board[positionActuelle.getRow()][positionActuelle.getCol()-2].getContent().equals(Cell.Empty)) {
+								board[positionActuelle.getRow()][positionActuelle.getCol()].setContent(Cell.Empty);
+								board[positionActuelle.getRow()][positionActuelle.getCol()-1].setContent(Cell.Me);
+								board[positionActuelle.getRow()][positionActuelle.getCol()-2].setContent(Cell.Box);
+								positionActuelle.setCol(positionActuelle.getCol()-1);
+							}//les autres cas on ne fait rien 	
+							if ( (positionActuelle.getCol()-2)>-1)
+								if(board[positionActuelle.getRow()][positionActuelle.getCol()-2].getContent().equals(Cell.Target)) {
+									board[positionActuelle.getRow()][positionActuelle.getCol()].setContent(Cell.Empty);
+									board[positionActuelle.getRow()][positionActuelle.getCol()-1].setContent(Cell.Me);
+									board[positionActuelle.getRow()][positionActuelle.getCol()-2].setContent(Cell.BoxOnTarget);
+									positionActuelle.setCol(positionActuelle.getCol()-1);
+								}
+						}
+					}
+					}	
+					}
+					else {
+						if(board[positionActuelle.getRow()][positionActuelle.getCol()-1].getContent().equals(Cell.Target)) {
+							board[positionActuelle.getRow()][positionActuelle.getCol()].setContent(Cell.Empty);
+							board[positionActuelle.getRow()][positionActuelle.getCol()-1].setContent(Cell.MeOnTarget);
+							positionActuelle.setCol(positionActuelle.getCol()-1);
+						}else {
+							if(board[positionActuelle.getRow()][positionActuelle.getCol()].getContent().equals(Cell.MeOnTarget)) {
+								if(board[positionActuelle.getRow()][positionActuelle.getCol()-1].getContent().equals(Cell.Empty)) {
+									board[positionActuelle.getRow()][positionActuelle.getCol()-1].setContent(Cell.Me);
+									board[positionActuelle.getRow()][positionActuelle.getCol()].setContent(Cell.Target);
+									positionActuelle.setCol(positionActuelle.getCol()-1);
+								}
+							}
+							else {//on fera juste un monde au plus ALLAH GHALEB on n'a ni le temps ni les compétences pour faire plus
+								if(board[positionActuelle.getRow()][positionActuelle.getCol()-1].getContent().equals(Cell.World)) {
+									///on recherche une porte si on peut entrer 
+									//dans la bordure en dessous
+									positionMonde=new Position(positionActuelle.getRow(),positionActuelle.getCol()-1);
+									Monde monde= lesMondes.get(new Position(positionActuelle.getRow(),positionActuelle.getCol()-1));
+									Position p;
+									if ( (p=trouverPorte(monde,0)) != null  ) {//on a trouvé une porte et on peut y accéder
+										//on doit sauvegarder la position sur le board et on doit se déplacer sur le monde 
+										board[positionActuelle.getRow()][positionActuelle.getCol()].setContent(Cell.Empty);
+										estMonde=true;
+										boardSauv=board;
+										board=monde.getMatrice();
+										colNb=rowNb=board[0].length;
+										positionActuelle=p;
+									    board[p.getRow()][p.getCol()].setContent(Cell.Me);
+									}
+								}else {// cas on est dans un monde et si on sorte du monde
+									if( estMonde) {
+										if (positionActuelle.getCol()==0 && positionMonde.getCol()>0) {
+											//donc on peut sortir du monde 
+											if(board[positionMonde.getRow()][positionMonde.getCol()-1].getContent().equals(Cell.Empty)) {
+												positionActuelle.setCol(positionMonde.getCol()-1);
+												positionActuelle.setRow(positionMonde.getRow());
+											}
+											else {//on bouge le monde comme une boite
+												//on modifie sa position dans la liste des mondes 
+												Position posMonde=positionMonde;
+												board[positionMonde.getRow()][positionMonde.getCol()].setContent(Cell.Box);
+												deplacerLEFT();
+												if(!posMonde.equals(new Position(posMonde.getRow(),posMonde.getCol()-1))) {
+												board[positionMonde.getRow()][positionMonde.getCol()-1].setContent(Cell.World);
+												//MAJ de la liste des world 
+												Monde m= lesMondes.get(posMonde);
+												lesMondes.remove(positionMonde);
+												lesMondes.put(new Position(positionMonde.getRow(),positionMonde.getCol()-1), m);
+												}
+											}
+										}
+									}
+								}
+							}
+						}
+					}
+				} 
+			}	
+		}
+		else {
+			//cas pour sortir d un monde
+			if(positionActuelle.getCol()==0) {
+				if(boardSauv[positionMonde.getRow()][positionMonde.getCol()-1].getContent().equals(Cell.Empty) || boardSauv[positionMonde.getRow()][positionMonde.getCol()].getContent().equals(Cell.Target) ){
+					board[positionActuelle.getRow()][positionActuelle.getCol()].setContent(Cell.Empty);
+					positionActuelle.setCol(positionMonde.getCol()-1);
+					positionActuelle.setRow(positionMonde.getRow());
+					board=boardSauv;
+					colNb=rowNb=board[0].length;
+					board[positionActuelle.getRow()][positionActuelle.getCol()].setContent(Cell.Me);
+				}
+				else if(boardSauv[positionMonde.getRow()][positionMonde.getCol()-1].getContent().equals(Cell.Box) && boardSauv[positionMonde.getRow()][positionMonde.getCol()-2].getContent().equals(Cell.Empty) ) {
+					Position positionBoite = new Position(positionMonde.getRow(),positionMonde.getCol()-2);
+					board[positionActuelle.getRow()][positionActuelle.getCol()].setContent(Cell.Empty);
+					positionBoite.printPosition();
+					boardSauv[positionMonde.getRow()][positionMonde.getCol()-1].setContent(Cell.Me);
+					boardSauv[positionMonde.getRow()][positionMonde.getCol()-2].setContent(Cell.Box);
+					positionActuelle.setCol(positionMonde.getCol()-1);
+					board=boardSauv;
+					colNb=rowNb=board[0].length;
+							//n oublie pas de modifier la liste des boites
+					int i=getIndex(boxes,positionBoite);
+					boxes.get(i).setRow(positionBoite.getRow());
+					boxes.get(i).setCol(positionMonde.getCol()-1);
+				}
+			}	
+			else {
+			estMonde=false;
+			deplacerLEFT();
+			estMonde=true;
+			}
+		}
+		if(iswon()) {
+        	System.out.println("BRAVO");
+        }
+	derniereAction=3;
+	}
 	void deplacerLEFTancien() {
 		if (positionActuelle.getCol()==0) return ; //on est à la derniere colonne
 		else {
@@ -1974,37 +2253,7 @@ public class Niveau  {
         
     }
     
- 
-    /**
-     * Dessine une ligne verticale d'une certaine longueur
-     * @param start, le point de départ
-     * @param length, la longueur de la ligne
-     */
-   /* public void drawVerticalWall(Case start, int length){
-        
-        for(int i = start.getRow(); i < start.getRow()+length; i++){
-            if(i<=this.getNbRows()){this.setCase(i, start.getCol(), Cell.Wall);}
-            else{break;}
-        }
-    }*/
-    
-    /**
-     * Dessine une ligne horizontale d'une certaine longueur
-     * @param start, le point de départ
-     * @param length, la longueur de la ligne
-     */
-  /*  public void drawHorizontalWall(Case start, int length){
-        
-        for(int i = start.getCol(); i < start.getCol()+length; i++){
-            if(i<=this.getNbCols()){
-            	this.setCase(start.getRow(), i, Cell.Wall);
-            }
-            else{
-            	break;
-            }
-        }
-    }
-    */
+
     /**
      * Rajoute une boîte
      * @param row, la ligne
@@ -2058,27 +2307,36 @@ public class Niveau  {
     	
     }
     public Case cas(char c , int row,int col) {
-		Case cellule = new Case();
+		 Case cellule = new Case();
 		 switch(c) {
 	  		case ' ':cellule.setContent(Cell.Empty);break;
 	  		case '#':cellule.setContent(Cell.Wall);break;
 	  		case 'B':cellule.setContent(Cell.Box);
 	  			boxes.add(new Position(row,col));
+	  			boxesdepart.add(new Position(row,col));
 	  			break;
 	  		case 'A':cellule.setContent(Cell.Me);
 	  				this.setPositionActuelle(new Position(row,col));
+	  				this.setPositionActuelledepart(new Position(row,col));
 	  			break;
 	  		case '@':cellule.setContent(Cell.Target);
   				cibles.add(new Position(row,col));
 	  			break;
 	  		case 'a':cellule.setContent(Cell.MeOnTarget);break;
 	  		case 'b':cellule.setContent(Cell.BoxOnTarget);break;
-	  		default :cellule.setContent(Cell.World); break;
+	  		default :cellule.setContent(Cell.World);
+	  				mondedepart.add(new Position(row,col));
+	  		         break;
 	  }
 		 return cellule;
 	}
     
-    /*
+    private void setPositionActuelledepart(Position position) {
+		this.positionActuelledepart=position;
+		
+	}
+
+	/*
 public   void initWorld() {//cette fonction va creer un niveau a partir d'un fichier 
 	
 	this.setLevel(chargementNiveau("niveau2.txt"));
@@ -2146,15 +2404,94 @@ public   void initWorld() {//cette fonction va creer un niveau a partir d'un fic
         
         if (pos.getRow() < currentPos.getRow()) {
             deplacerUP();
+             
         } else if (pos.getRow() > currentPos.getRow()) {
              deplacerDOWN();
+             
         } else if (pos.getCol() < currentPos.getCol()) {
             deplacerLEFT();
+            
         } else if (pos.getCol() > currentPos.getCol()) {
             deplacerRIGHT();
+            
         }
     }
 
     
+
+public boolean iswon() {
+	int i=0;
+	for(Position p : boxes) {
+		for(Position n : cibles) {
+			if(p.equals(n)) {
+				i++;
+			}
+		}
+	}
+	if(i==boxes.size()) {
+		 this.won=true;
+	}
+	return this.won;
 }
 
+public boolean getwon() {
+	return won;
+}
+public void ReinitialiserNiveau() {
+	 for (Position b : this.boxes) {
+		 
+	    board[b.row][b.col].setContent(Cell.Empty);
+ }
+	for (Position p : lesMondes.keySet()) {
+		board[p.row][p.col].setContent(Cell.Empty);
+    }
+	 this.boxes.clear();
+	 lesMondes.clear();
+	 board[positionActuelle.getRow()][positionActuelle.getCol()].setContent(Cell.Empty);
+	 this.setPositionActuelle(positionActuelledepart);
+	 board[positionActuelledepart.getRow()][positionActuelledepart.getCol()].setContent(Cell.Me);
+	 for (Position b : this.boxesdepart) {
+	        this.boxes.add(new Position(b.row, b.col));
+	        board[b.row][b.col].setContent(Cell.Box);
+	    }
+	 for (Position b : this.mondedepart) {
+	        this.lesMondes.put(new Position(b.row, b.col), null);
+	        board[b.row][b.col].setContent(Cell.World);
+	    }
+	 for (Position b : this.cibles) {
+	        board[b.row][b.col].setContent(Cell.Target);
+	    }
+	
+	     
+}
+private ArrayList<Position> mondedepart=new ArrayList<Position>();
+public void setDerniereAction(int i) {
+	derniereAction=i;
+}
+
+private int derniereAction=0;
+
+public void PositionAvant() {
+	if(derniereAction==1) {
+		deplacerDOWN();
+		derniereAction=0;
+		return;
+	}
+	if(derniereAction==2) {
+		deplacerUP();
+		derniereAction=0;
+		return;
+	}
+	if(derniereAction==3) {
+		deplacerRIGHT();
+		derniereAction=0;
+		return;
+	}
+	if(derniereAction==4) {
+		deplacerLEFT();
+		derniereAction=0;
+		return;
+	}
+	  
+}
+}
