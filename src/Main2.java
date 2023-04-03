@@ -16,18 +16,26 @@ import javax.swing.JPanel;
 
 public class Main2 {
 		
-		public static void main(String[] args) {
+		    public static void main(String[] args) {
 			
 		    JFrame frame = new JFrame("Patrick's Parabox Game");
 		    frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+		    frame.setResizable(false);
+		    frame.setSize(700,700);
+		    
+		    Partie partie= new Partie("niveauofficiel.txt");
+		    partie.afficher_les_niveaux();
+		    System.out.println("\nAAAAAAAA"); 
 
 		    JPanel panel = new JPanel(new BorderLayout());
+		    panel.setBackground(Color.black);
 		    
 		 // Créer une nouvelle JPanel pour ajouter le label et le bouton
 		    JPanel headerPanel = new JPanel(new BorderLayout());
+		    headerPanel.setBackground(Color.black);
 		    headerPanel.setOpaque(false);
 		    
-		    ImageIcon backgroundImage = new ImageIcon("images/back.gif");
+		    ImageIcon backgroundImage = new ImageIcon("images/back.jpg");
 		    JLabel backgroundLabel = new JLabel(backgroundImage);
 		    backgroundLabel.setBounds(0, 0, backgroundImage.getIconWidth(), backgroundImage.getIconHeight());
 		    panel.add(backgroundLabel);
@@ -41,10 +49,10 @@ public class Main2 {
 		    headerPanel.add(label, BorderLayout.WEST);
 		    
 		 // Ajouter le bouton "PLAY" à droite de la nouvelle JPanel
-		    JButton bouton = new JButton("PLAY");
-		    bouton.setPreferredSize(new Dimension(150, 50));
-		    bouton.setBackground(Color.GREEN);
-		    headerPanel.add(bouton, BorderLayout.CENTER);
+		    JButton PlayButton= new JButton("PLAY");
+		    PlayButton.setPreferredSize(new Dimension(150, 50));
+		    PlayButton.setBackground(Color.GREEN);
+		    headerPanel.add(PlayButton, BorderLayout.CENTER);
 
 		  // Ajouter la nouvelle JPanel à la région NORTH de JPanel panel
 		    panel.add(headerPanel, BorderLayout.NORTH);
@@ -53,8 +61,6 @@ public class Main2 {
 		    panel.add(backgroundLabel, BorderLayout.CENTER);
 		    
 		    frame.add(panel);
-		    frame.setResizable(false);
-		    frame.setSize(700,700);
 		    
 		    JButton exitButton = new JButton("EXIT");
 		    exitButton.setPreferredSize(new Dimension(150, 50)); // Définir une taille de 100 pixels de largeur et 50 pixels de hauteur
@@ -69,56 +75,76 @@ public class Main2 {
 
 		    frame.setVisible(true);
 
-		    bouton.addActionListener(new ActionListener() {
+		    PlayButton.addActionListener(new ActionListener() {
 		        public void actionPerformed(ActionEvent e) {
-		        	int i=0;
-		        	//while(i<5) {
-		            Partie partie= new Partie("niveauofficiel.txt");
-		            partie.afficher_les_niveaux();
-		            System.out.println("\nAAAAAAAA");
-		            Niveau niveau=Partie.readPuzzles("niveauofficiel.txt").get(i);
-		            Case[][] matrice = niveau.getBoard();
-		            
-		            Image wall = new ImageIcon("images/mur.png").getImage();
-		            Image me = new ImageIcon("images/personnage.jpg").getImage();
-		            Image box = new ImageIcon("images/box1.png").getImage();
-		            Image empty = new ImageIcon("images/normal.png").getImage();
-		            Image target = new ImageIcon("images/cible.png").getImage();
-		            Image meOnTarget = new ImageIcon("images/personnage.jpg").getImage();
-		            Image boxOnTarget = new ImageIcon("images/box1.png").getImage();
-		            
-		           
-		            frame.getContentPane().removeAll(); // Supprimer le contenu existant
-		            //JPanel jeu= new JPanel();
-		        	JButton btn = new JButton("Help");
-		        	//jeu.add(btn);
-		        	//setLayout(new BorderLayout());
-		        	
-
-		            MatriceCase matricePanel = new MatriceCase(matrice, wall, empty,me,box,target,meOnTarget,boxOnTarget,niveau);
-		            matricePanel.add(btn);
-		            btn.addActionListener(new ActionListener() {
-		        		   @Override
-		        		   public void actionPerformed(ActionEvent e) {
-		        		       JOptionPane.showMessageDialog(null, "si vous voulez la résolution automatique du chemin ! vous n'avez qu'à cliquer sur la case ou vous "
-		        		       		+ "voullez aller !");
-		        		   }
-		        		});
-		            //add(jeu,BorderLayout.SOUTH);
-		            //add(MatricePanel,BorderLayout.CENTER);
-		            frame.add(matricePanel);
-		            matricePanel.addKeyListenerToPanel();
-		   
-		            //frame.add(jeu);
-		            frame.revalidate(); // Actualiser la JFrame
+		            // Supprimer le contenu existant
+		            frame.getContentPane().removeAll(); 
+		            frame.revalidate(); 
 		            frame.repaint();
 		            
-		           /* if(Niveau.compare(niveau.getBoxes(), niveau.getCibles())) {
-		            	i++;*/
+		            // Créer le JPanel parent
+		            JPanel mainPanel = new JPanel(new BorderLayout());
+                    int i=1;
+		            // Ajouter le premier JPanel
+		            MatriceCase matricePanel = new MatriceCase(i);
+		            matricePanel.setPreferredSize(new Dimension(300,200));
+		            matricePanel.addKeyListenerToPanel();
+		            matricePanel.addMousseListenerToPanel();
+		            mainPanel.add(matricePanel, BorderLayout.CENTER);
+		            System.out.println(matricePanel.niveau.getwon());
+		            
+		            if(matricePanel.niveau.getwon() && i<10) {
+		            	i++;
+		                mainPanel.remove(matricePanel); // 
+		                mainPanel.add(new MatriceCase(i));
+		                matricePanel.revalidate(); // force le JPanel à se redessiner avec le nouveau contenu
+		                matricePanel.repaint();
+	
+		            }
+		            
+		            // Ajouter le deuxième JPanel 
+		            JPanel btnPanel = new JPanel();
+		            btnPanel.setPreferredSize(new Dimension(100, 50));
+		            mainPanel.add(btnPanel, BorderLayout.SOUTH);
+		            btnPanel.setBackground(Color.black);
+		            
+		            JButton btnReset= new JButton("Reset");
+		            btnPanel.add(btnReset);
+		            btnReset.addActionListener(new ActionListener() {
+		                @Override
+		                public void actionPerformed(ActionEvent e) {
+		                	
+		                    matricePanel.niveau.ReinitialiserNiveau();
+		                    matricePanel.repaint(); // Ajout de repaint() pour redessiner le JPanel matricePanel après avoir modifié la matrice
+		                    matricePanel.niveau.getPositionActuelle().printPosition();
+		                    matricePanel.requestFocusInWindow();
+		                    
+		                    
+		                   
+		                } 
+		            });
 		            
 		            
-		        }
-		        }); 
+		            JButton btnHelp = new JButton("Help");
+		            btnPanel.add(btnHelp);
+		            btnHelp.addActionListener(new ActionListener() {
+		                @Override
+		                public void actionPerformed(ActionEvent e) {
+		                    JOptionPane.showMessageDialog(null, "si vous voulez la résolution automatique du chemin ! vous n'avez qu'à cliquer sur la case ou vous "
+		                        + "voullez aller !");
+		                    matricePanel.requestFocusInWindow();
+		                } 
+		                
+
+		            });
+ 
+		            // Ajouter le JPanel parent à la JFrame
+		            frame.getContentPane().add(mainPanel);
+		            matricePanel.requestFocusInWindow(); // ajout de focus sur matricePanel
+		            frame.revalidate();
+		        } 
+		    });
 		}
-	}
+}
+	
 
