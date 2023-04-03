@@ -84,7 +84,7 @@ public class Main2 {
 		            
 		            // Créer le JPanel parent
 		            JPanel mainPanel = new JPanel(new BorderLayout());
-                    int i=1;
+                    int i=0;
 		            // Ajouter le premier JPanel
 		            MatriceCase matricePanel = new MatriceCase(i);
 		            matricePanel.setPreferredSize(new Dimension(300,200));
