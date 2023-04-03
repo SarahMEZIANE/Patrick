@@ -352,10 +352,13 @@ public class Niveau  {
 	void deplacerUP() { 
 		if(positionActuelle.getRow()-2>0) {
 			if(board[positionActuelle.getRow()-1][positionActuelle.getCol()].getContent().equals(Cell.Box)&&board[positionActuelle.getRow()-2][positionActuelle.getCol()].getContent().equals(Cell.Target)) {
+				Position positionBoite= new Position(positionActuelle.getRow()-1,positionActuelle.getCol());
 				board[positionActuelle.getRow()][positionActuelle.getCol()].setContent(Cell.Empty);
 				board[positionActuelle.getRow()-1][positionActuelle.getCol()].setContent(Cell.Me);
 				board[positionActuelle.getRow()-2][positionActuelle.getCol()].setContent(Cell.BoxOnTarget);
 				positionActuelle.setRow(positionActuelle.getRow()-1);
+				int i=getIndex(boxes,positionBoite);
+				boxes.get(i).setRow(positionBoite.getRow()-1);
 			}
 		}
 		
@@ -1788,10 +1791,14 @@ void deplacerLEFT() {
 		
 		if(positionActuelle.getCol()-2>0) {
 			if(board[positionActuelle.getRow()][positionActuelle.getCol()-1].getContent().equals(Cell.Box)&&board[positionActuelle.getRow()][positionActuelle.getCol()-2].getContent().equals(Cell.Target)) {
+				Position positionBoite= new Position(positionActuelle.getRow(),positionActuelle.getCol()-11);
 				board[positionActuelle.getRow()][positionActuelle.getCol()].setContent(Cell.Empty);
 				board[positionActuelle.getRow()][positionActuelle.getCol()-1].setContent(Cell.Me);
 				board[positionActuelle.getRow()][positionActuelle.getCol()-2].setContent(Cell.BoxOnTarget);
 				positionActuelle.setCol(positionActuelle.getCol()-1);
+				int i=getIndex(boxes,positionBoite);
+				boxes.get(i).setCol(positionBoite.getCol()-1);
+				
 			}
 		}
 		
